@@ -1,0 +1,21 @@
+{
+ "appId": "com.yhm.bili",
+ "files": ["dist-electron", "dist-react"],
+ "icon": "./desktopIcon.png", 
+ "extraResources": ["dist-electron/preload.cjs", "src/assets/**"],
+ "mac": {
+     "target": "dmg"
+ },
+ "linux": {
+     "target": "AppImage",
+     "category": "Utillity"
+ },
+ "win": {
+     "target": ["portable", "nsis"]
+ },
+ "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true
+ }
+}

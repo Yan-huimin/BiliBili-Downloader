@@ -1,0 +1,31 @@
+{
+"compilerOptions": {
+ // 启用所有严格的类型检查选项（推荐用于生产环境）
+ // 包括：noImplicitAny, strictNullChecks, strictFunctionTypes 等
+ "strict": true,
+
+ // 指定编译后的 JavaScript 目标版本
+ // "ESNext" 表示使用最新的 ECMAScript 标准特性
+ // 注意：Electron 项目中可能需要根据 Node.js 版本降低（如 "ES2022"）
+ "target": "ESNext",
+
+ // 指定模块系统类型
+ // "NodeNext" 表示使用 Node.js 最新的模块系统（ESM + CommonJS 自动探测）
+ // 适用于 Electron 主进程（需要兼容 Node.js 的模块加载）
+ "module": "NodeNext",
+
+ // 指定编译后的输出目录
+ // 这里设置为上级目录的 `dist-electron` 文件夹（通常用于隔离主进程代码）
+ // 路径中的 `../../` 表示相对于当前 tsconfig.json 的两级父目录
+ "outDir": "../../dist-electron",
+
+ // 跳过对第三方库的类型检查（可提升编译速度）
+ // 适用于：当某些库的类型定义有问题但不想阻塞编译时
+ "skipLibCheck": true,
+
+ // 指定额外的类型声明文件路径
+ // 这里引用了项目根目录下的 `types` 文件夹（自定义类型定义）
+ // 例如：可以放置 Electron API 的扩展类型或共享的全局类型
+ "types": ["../../types"]
+}
+}
