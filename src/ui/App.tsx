@@ -105,15 +105,7 @@ const startDownload = async (link: string): Promise<boolean> => {
         return;
       }
 
-      const succeedOrNot = await startDownload(res);
-
-      if(!succeedOrNot){
-        return;
-      }
-      
-      setIsDownloading(false);
-      setDownloadProgress(0); // 100%
-      showAlertMessage('下载完成！');
+      await startDownload(res);
     } catch (error) {
       showAlertMessage("下载失败...");
       setIsDownloading(false);

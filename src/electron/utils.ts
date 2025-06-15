@@ -1,5 +1,5 @@
-import axios from "axios";
-import { BrowserWindow, dialog, ipcMain } from "electron";
+import axios, { AxiosResponse } from "axios";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import fs from 'fs';
 import path from "path";
 import os from 'os';
@@ -72,6 +72,10 @@ export async function setSaveFolder(){
 
 const THREAD_COUNT = 4;
 
+// 全局变量用于管理退出时清理资源
+let activeStreams: fs.WriteStream[] = [];
+let currentWriteStream: fs.WriteStream | null = null;
+
 export function registerVideoDownloader(win: BrowserWindow) {
   ipcMain.handle('start_download', async (_e, { url, filePath }) => {
     try {
@@ -89,7 +93,6 @@ export function registerVideoDownloader(win: BrowserWindow) {
 
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bili-download-'));
       const partSize = Math.ceil(totalSize / THREAD_COUNT);
-
       let downloaded = 0;
 
       const downloadPart = async (start: number, end: number, index: number) => {
@@ -104,6 +107,7 @@ export function registerVideoDownloader(win: BrowserWindow) {
 
         const partPath = path.join(tempDir, `part_${index}`);
         const writer = fs.createWriteStream(partPath);
+        activeStreams.push(writer); // 加入活跃写入列表
 
         return new Promise<void>((resolve, reject) => {
           response.data.on('data', (chunk: Buffer) => {
@@ -112,9 +116,25 @@ export function registerVideoDownloader(win: BrowserWindow) {
             win.webContents.send('download-progress', progress);
           });
 
-          response.data.on('error', reject);
-          writer.on('error', reject);
-          writer.on('finish', resolve);
+          response.data.on('error', (err: Error) => {
+            win.webContents.send('download-error', '下载失败: ' + err.message);
+            reject(err);
+          });
+
+          writer.on('error', (err: Error) => {
+            win.webContents.send('download-error', '写入文件失败: ' + err.message);
+            reject(err);
+          });
+
+          writer.on('finish', () => {
+            writer.close((err) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
+            });
+          });
 
           response.data.pipe(writer);
         });
@@ -131,6 +151,7 @@ export function registerVideoDownloader(win: BrowserWindow) {
 
       const finalPath = path.join(filePath, `video_${Date.now()}.mp4`);
       const writeStream = fs.createWriteStream(finalPath);
+      currentWriteStream = writeStream;
 
       for (let i = 0; i < THREAD_COUNT; i++) {
         const partPath = path.join(tempDir, `part_${i}`);
@@ -141,7 +162,6 @@ export function registerVideoDownloader(win: BrowserWindow) {
 
       writeStream.end();
 
-      // ✅ 确保完全写入并关闭句柄后通知完成
       writeStream.on('finish', () => {
         writeStream.close(() => {
           fs.rmdirSync(tempDir);
@@ -156,6 +176,23 @@ export function registerVideoDownloader(win: BrowserWindow) {
 
     } catch (err) {
       win.webContents.send('download-error', '下载失败: ' + (err as Error).message);
+    } finally {
+      // 清空流列表
+      activeStreams = [];
+      currentWriteStream = null;
     }
   });
 }
+
+// ✅ 应用退出时清理未关闭流
+app.on('before-quit', () => {
+  activeStreams.forEach((stream) => {
+    if (!stream.destroyed) {
+      stream.destroy();
+    }
+  });
+
+  if (currentWriteStream && !currentWriteStream.destroyed) {
+    currentWriteStream.destroy();
+  }
+});
