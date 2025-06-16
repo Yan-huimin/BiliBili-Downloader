@@ -34,6 +34,6 @@ export function createMainWindow() {
 
     mainWindow.webContents.once('did-finish-load', () => {
         mainWindow.show();
-  });
+    });
   return mainWindow;
 }

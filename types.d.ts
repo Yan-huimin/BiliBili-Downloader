@@ -8,6 +8,17 @@ type EventPayloadMapping = {
     filePath: filePathExist,
 }
 
+/*
+ *
+ ****\test
+*/
+
+type __DEVTOOLS_OPENED__ = boolean;
+
+
+/* ******************************** */
+
+
 type FrameWindowAction = "CLOSE" | "MINIMIZE" | "MAXIMIZE";
 type BvCode = string;
 type bvid = string;
