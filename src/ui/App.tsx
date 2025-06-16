@@ -66,15 +66,13 @@ const startDownload = async (link: string): Promise<boolean> => {
 
     //@ts-ignore
     window.electron?.on('download-complete', (filePath: string) => {
-      setAlertMessage("下载完成");
-      setTimeout(() => setShowAlert(false), 3000);
+      showAlertMessage("下载完成");
       setIsDownloading(false);
       setDownloadProgress(0);
     });
 
     window.electron?.on('download-error', (msg: string) => {
-      setAlertMessage(`下载失败:${msg}`);
-      setTimeout(() => setShowAlert(false), 3000);
+      showAlertMessage(`下载失败:${msg}`);
       setIsDownloading(false);
       setDownloadProgress(0);
     });
