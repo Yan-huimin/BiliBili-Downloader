@@ -3,7 +3,7 @@ import '../css/Header.css';
 const Header = () => {
     return(
         <>
-            <header className="z-999">
+            <header className="z-999" data-testid="head">
                 <button 
                 id="close"
                 aria-label="close"

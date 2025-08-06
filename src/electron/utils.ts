@@ -42,7 +42,13 @@ const headers = {
 export async function getPlayUrl(bvid: bvid, cid: cid): Promise<string> {
   try {
     const api = `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&qn=80&fnval=0&otype=json`;
-    const response = await axios.get(api, { headers });
+    const response = await axios.get(
+      api, 
+      { 
+        headers,
+        proxy: false,
+      }
+    );
 
     if (response.data.code !== 0) {
       throw new Error(`请求失败 code=${response.data.code}`);
@@ -58,6 +64,7 @@ export async function getPlayUrl(bvid: bvid, cid: cid): Promise<string> {
 }
 
 export async function setSaveFolder(){
+
   const result = await dialog.showOpenDialog({
     title: '选择保存文件夹',
     properties: ['openDirectory'],

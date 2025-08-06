@@ -2,6 +2,7 @@ import Header from './components/Header';
 import './css/App.css';
 import { SetStateAction, useState, useEffect } from 'react';
 import { FaGithub } from "react-icons/fa";
+import confetti from 'canvas-confetti';
 
 function App() {
   const [shareLink, setShareLink] = useState('')
@@ -33,7 +34,7 @@ function App() {
       const path = await window.electron.setVideoFolder();
       setSavePath(path);
     } catch (error) {
-      console.log('用户取消选择文件夹');
+      showAlertMessage('用户取消选择文件夹');
     }
   }
 
@@ -69,6 +70,11 @@ const startDownload = async (link: string): Promise<boolean> => {
       showAlertMessage("下载完成");
       setIsDownloading(false);
       setDownloadProgress(0);
+      confetti({
+        particleCount: 150,
+        spread: 30,
+        origin: {y: 0.3},
+      })
     });
 
     window.electron?.on('download-error', (msg: string) => {
@@ -134,8 +140,9 @@ const startDownload = async (link: string): Promise<boolean> => {
       <Header />
       <div className={`w-full h-screen ${themeClasses.container} flex flex-col pt-10 px-4 transition-colors duration-300`}>
         {/* 主题切换按钮 */}
-        <div className="fixed top-100 left-85 z-40">
+        <div className="fixed top-100 left-85 z-40" data-testid="changeModeContainer">
           <button
+            data-testid='changeModeBtn'
             onClick={() => setIsDarkTheme(!isDarkTheme)}
             className={`p-2 cursor-pointer rounded-lg ${themeClasses.button} transition-all duration-200 hover:scale-105 shadow-lg`}
             title={isDarkTheme ? '切换到日间主题' : '切换到暗黑主题'}
@@ -154,7 +161,7 @@ const startDownload = async (link: string): Promise<boolean> => {
 
         {/* 警告弹窗 */}
         {showAlert && (
-          <div className="fixed top-20 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg
+          <div data-testid="warning" className="fixed top-20 right-4 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg
                          transform transition-all duration-300 animate-bounce z-10000">
             <div className="flex items-center space-x-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -170,11 +177,12 @@ const startDownload = async (link: string): Promise<boolean> => {
             <div className="space-y-6">
           {/* 分享链接输入 */}
           <div className='space-y-1'>
-            <label className={`block text-xs font-medium ${themeClasses.text}`}>
+            <label className={`block text-xs font-medium ${themeClasses.text}`} data-testid="shareLinkLabel">
               分享链接
             </label>
             <input
               type="url"
+              data-testid="shareLink"
               name="shareLink"
               value={shareLink}
               onChange={(e) => setShareLink(e.target.value)}
@@ -189,11 +197,12 @@ const startDownload = async (link: string): Promise<boolean> => {
 
           {/* 保存地址输入 */}
           <div className='space-y-1'>
-            <label className={`block text-xs font-medium ${themeClasses.text}`}>
+            <label className={`block text-xs font-medium ${themeClasses.text}`} data-testid="folderAddreeLabel">
               保存地址
             </label>
             <div className="flex space-x-1">
               <input
+                data-testid="folderAddress"
                 type="text"
                 name="savePath"
                 value={savePath}
@@ -206,6 +215,7 @@ const startDownload = async (link: string): Promise<boolean> => {
                            transition-all duration-200`}
               />
               <button
+                data-testid="chooseFolderBtn"
                 onClick={handleFolderSelect}
                 className={`px-2 py-2 ${themeClasses.button} border rounded-md 
                            transition-all duration-200 hover:scale-105 focus:outline-none cursor-pointer
@@ -222,7 +232,7 @@ const startDownload = async (link: string): Promise<boolean> => {
           {/* 进度条 - 紧凑版本 */}
           <div className="h-3 flex flex-col justify-center">
             {isDownloading ? (
-              <div className="space-y-1">
+              <div className="space-y-1" id='progressBar'>
                 <div className="flex justify-between items-center">
                   <span className={`text-xs ${themeClasses.text}`}>下载进度</span>
                   <span className={`text-xs ${themeClasses.textSecondary}`}>{Math.round(downloadProgress)}%</span>
@@ -239,6 +249,7 @@ const startDownload = async (link: string): Promise<boolean> => {
 
           {/* 下载按钮 */}
           <button
+            data-testid="downloadBtn"
             onClick={handleDownload}
             disabled={isDownloading}
             className={`w-full py-2.5 px-4 text-sm font-medium rounded-md transition-all duration-200 
@@ -249,29 +260,39 @@ const startDownload = async (link: string): Promise<boolean> => {
                 : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white transform hover:scale-105 hover:shadow-md active:scale-95'
             }`}
           >
-            {isDownloading ? '下载中...' : '开始下载'}
+            {isDownloading ? (
+              <>
+              <span className='flex items-center justify-center gap-2'>
+                <div className='h-2 w-2 bg-blue-500 animate-bounce rounded-full [animation-delay:-0.3s]'></div>
+                <div className='h-2 w-2 bg-blue-500 animate-bounce rounded-full [animation-delay:-0.15s]'></div>
+                <div className='h-2 w-2 bg-blue-500 animate-bounce rounded-full'></div>
+              </span>
+
+              </>
+          ) : '开始下载'}
           </button>
 
           {/* 提示信息 */}
           <div className="text-center">
             <div className="space-y-1 text-center mt-2">
-              <p className={`${themeClasses.textSecondary} text-xs`}>
+              <p className={`${themeClasses.textSecondary} text-xs`} data-testid="firstInfo">
                 仅支持
                 <span className="font-bold font-sans text-blue-500"> BiliBili </span>
                 视频下载
               </p>
 
-              <p className={`${themeClasses.textSecondary} text-xs`}>
+              <p className={`${themeClasses.textSecondary} text-xs`} data-testid="secondInfo">
                 <span className="font-bold font-sans text-blue-500">
                   yanhuimin434@gmail.com
                 </span>
               </p>
 
-              <p className="text-xs flex justify-center items-center gap-1">
+              <p className="text-xs flex justify-center items-center gap-1" data-testid="thirdInfo">
                 <span className="font-bold font-sans gradient-text-animate">
                   &copy; 2025 yhm
                 </span>
                 <a
+                  data-testid="authorLink"
                   href="https://github.com/Yan-huimin"
                   target="_blank"
                   onClick={(e) => {
