@@ -1,9 +1,11 @@
-import axios from "axios";
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
-import { client } from "./bilibiliClient.js";
+import { client, jar } from "./bilibiliClient.js";
 import fs from 'fs';
 import path from "path";
 import os from 'os';
+import { getCookiesPath } from "./pathResolver.js";
+import { promisify } from "util";
+import { CookieJar } from "tough-cookie";
 
 export function isDev(): boolean {
  return process.env.NODE_ENV === 'development';
@@ -210,3 +212,29 @@ app.on('before-quit', () => {
     currentWriteStream.destroy();
   }
 });
+
+function isExistCookiesFile(): boolean{
+    return fs.existsSync(getCookiesPath());
+}
+
+export async function ensureExistCookiesFile() {
+    if(!isExistCookiesFile()){
+        const serialized = await promisify(jar.serialize.bind(jar))();
+        fs.writeFileSync(getCookiesPath(), JSON.stringify(serialized, null, 2), 'utf-8');
+    }
+}
+
+export async function saveCookies() {
+  const serialized = await jar.serialize();
+  fs.writeFileSync(getCookiesPath(), JSON.stringify(serialized, null, 2), 'utf-8');
+}
+
+export async function loadCookies(): Promise<CookieJar | null> {
+  const path = getCookiesPath();
+  if (!fs.existsSync(path)) return null;
+
+  const data = JSON.parse(fs.readFileSync(path, 'utf-8'));
+  // 使用静态方法反序列化
+  const jar = CookieJar.deserialize(data);
+  return jar;
+}

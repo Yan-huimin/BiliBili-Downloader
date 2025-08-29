@@ -1,9 +1,9 @@
 import { BrowserWindow, ipcMain, shell, Notification } from "electron";
 import { IpcMainHandle, IpcMainOn } from "./ipcTools.js";
-import { extractBV, getCid, getPlayUrl, setSaveFolder } from "./utils.js";
+import { ensureExistCookiesFile, extractBV, getCid, getPlayUrl, loadCookies, saveCookies, setSaveFolder } from "./utils.js";
 import { getDefaultVideoPath } from "./pathResolver.js";
 import fs from 'fs';
-import { client } from "./bilibiliClient.js";
+import { client, jar } from "./bilibiliClient.js";
 
 export function setupIpcHandlers(win: BrowserWindow){
     // 监听窗口打开、最小化、最大化事件
@@ -65,15 +65,31 @@ export function setupIpcHandlers(win: BrowserWindow){
     });
 
     ipcMain.handle("poll_qrcode_status", async (event, qrcodeKey) => {
-        const res = await client.get(`https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${qrcodeKey}`);
         
+        const res = await client.get(`https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key=${qrcodeKey}`);
+
+        ensureExistCookiesFile();
+
         const code = res.data.data.code;
 
         if(code === 0){
             const userInfo = await client.get("https://api.bilibili.com/x/web-interface/nav");
-            console.log("用户信息", userInfo.data.data);
+            saveCookies();
+            console.log("jar: \n" + jar);
+            jar.getCookies('https://www.bilibili.com', (err, cookies) => {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                console.log(cookies); // 输出 Cookie 对象数组
+            });
         }
 
         return res.data.data.code;
+    });
+
+    IpcMainHandle('check_login', async () => {
+        const res = await client.get("https://api.bilibili.com/x/web-interface/nav");
+        return res.data.code === 0;
     });
 }

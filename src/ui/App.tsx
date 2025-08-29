@@ -4,7 +4,6 @@ import { SetStateAction, useState, useEffect } from 'react';
 import { FaGithub } from "react-icons/fa";
 import confetti from 'canvas-confetti';
 import LoginBili from './components/LoginBili';
-import { electron } from 'process';
 
 function App() {
   const [shareLink, setShareLink] = useState('')
@@ -75,6 +74,10 @@ const startDownload = async (link: string): Promise<boolean> => {
 };
 
   useEffect(() => {
+    window.biliApi.checkLogin().then((isLoggedIn) => {
+      setLoginStatus(isLoggedIn);
+    });
+
     window.electron.onDownloadProgress((percent) => {
       setDownloadProgress(percent * 100);
     });

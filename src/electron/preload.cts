@@ -46,5 +46,6 @@ electron.contextBridge.exposeInMainWorld(
   "biliApi",{
     getQr: () => ipcInvoke('getQr'),
     pollQRCodeStatus: (payload: qrcode_key) => ipcInvoke_1("poll_qrcode_status", payload),
+    checkLogin: () => ipcInvoke('check_login'),
   } satisfies Window["biliApi"]
 );

@@ -9,6 +9,7 @@ type EventPayloadMapping = {
     getQr: QRInfo,
     poll_qrcode_status: qrcode_key,
     sendSuccessInfo: downloadSuccess,
+    check_login: boolean,
 }
 
 /*
@@ -65,6 +66,7 @@ interface Window{
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;
-        pollQRCodeStatus: (payload: qrcode_key) => Promise<qrcode_key>
+        pollQRCodeStatus: (payload: qrcode_key) => Promise<qrcode_key>;
+        checkLogin: () => Promise<boolean>;
     }
 }
