@@ -3,6 +3,8 @@ import './css/App.css';
 import { SetStateAction, useState, useEffect } from 'react';
 import { FaGithub } from "react-icons/fa";
 import confetti from 'canvas-confetti';
+import LoginBili from './components/LoginBili';
+import { electron } from 'process';
 
 function App() {
   const [shareLink, setShareLink] = useState('')
@@ -12,6 +14,8 @@ function App() {
   const [showAlert, setShowAlert] = useState(false)
   const [alertMessage, setAlertMessage] = useState('')
   const [isDarkTheme, setIsDarkTheme] = useState(true)
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginStatus, setLoginStatus] = useState(false);
 
   if (process.env.NODE_ENV === 'production') {
   window.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -22,6 +26,10 @@ function App() {
     }
   });
 }
+
+  const handleLoginStatusChange = (status: boolean) => {
+    setLoginStatus(status);
+  };
 
   const showAlertMessage = (message: SetStateAction<string>) => {
     setAlertMessage(message)
@@ -36,6 +44,12 @@ function App() {
     } catch (error) {
       showAlertMessage('用户取消选择文件夹');
     }
+  }
+
+  const handleNotification = (message: string) => {
+    setAlertMessage(message);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
   }
 
 const startDownload = async (link: string): Promise<boolean> => {
@@ -70,14 +84,19 @@ const startDownload = async (link: string): Promise<boolean> => {
       showAlertMessage("下载完成");
       setIsDownloading(false);
       setDownloadProgress(0);
+      window.electron.sendSuccessInfo({
+        types: '下载成功',
+        message: `文件已下载到: ${filePath}`
+      });
       confetti({
         particleCount: 150,
         spread: 30,
-        origin: {y: 0.3},
+        origin: {y: 0.8},
       })
     });
 
     window.electron?.on('download-error', (msg: string) => {
+      console.log(msg);
       showAlertMessage(`下载失败:${msg}`);
       setIsDownloading(false);
       setDownloadProgress(0);
@@ -137,10 +156,10 @@ const startDownload = async (link: string): Promise<boolean> => {
 
   return (
     <>
-      <Header />
+      <Header isActive={loginStatus} />
       <div className={`w-full h-screen ${themeClasses.container} flex flex-col pt-10 px-4 transition-colors duration-300`}>
         {/* 主题切换按钮 */}
-        <div className="fixed top-100 left-85 z-40" data-testid="changeModeContainer">
+        <div className="fixed top-90 left-85 z-40" data-testid="changeModeContainer">
           <button
             data-testid='changeModeBtn'
             onClick={() => setIsDarkTheme(!isDarkTheme)}
@@ -158,6 +177,29 @@ const startDownload = async (link: string): Promise<boolean> => {
             )}
           </button>
         </div>
+
+        {/* 设置按键 */}
+        <div className="fixed top-100 left-85 z-40" data-testid="changeModeContainer">
+          <button
+            className={`p-2 cursor-pointer rounded-lg ${themeClasses.button} transition-all duration-200 hover:scale-105 shadow-lg`}
+            title={"设置"}
+            onClick={() => setShowLogin(true)}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path fillRule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 0 0-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 0 0-2.282.819l-.922 1.597a1.875 1.875 0 0 0 .432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 0 0 0 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 0 0-.432 2.385l.922 1.597a1.875 1.875 0 0 0 2.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 0 0 2.28-.819l.923-1.597a1.875 1.875 0 0 0-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 0 0 0-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 0 0-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 0 0-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 0 0-1.85-1.567h-1.843ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+
+        {/* 设置弹窗 */}
+        {showLogin && (
+          <LoginBili
+            visible={showLogin}
+            onClose={() => setShowLogin(false)}
+            setLoginstatus={() => handleLoginStatusChange(true)}
+            LoginSuccessNotic={() => handleNotification('登录成功')}
+          />
+        )}
 
         {/* 警告弹窗 */}
         {showAlert && (

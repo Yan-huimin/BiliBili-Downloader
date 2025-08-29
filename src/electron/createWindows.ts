@@ -5,7 +5,7 @@ import { isDev } from "./utils.js";
 export function createMainWindow() {
     const mainWindow = new BrowserWindow({
         webPreferences: {
-            devTools: false,
+            devTools: true,
             preload: getPreloadPath(),
         },
         resizable: false,

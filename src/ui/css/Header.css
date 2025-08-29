@@ -19,6 +19,10 @@ header button {
   -webkit-app-region: no-drag;
 }
 
+span {
+  -webkit-app-region: no-drag;
+}
+
 #close {
   background-color: red;
 }
@@ -29,6 +33,12 @@ header button {
 
 #maximize {
   background-color: lime;
+}
+
+#breathlight {
+  background-color: lime;
+  border-radius: 50%;
+  animation: breath 2s infinite ease-in-out;
 }
 
 #close, #minimize, #maximize {
@@ -45,4 +55,22 @@ header button {
 
 #maximize:hover {
   background-color: #00ff00d1;
+}
+
+@keyframes breath {
+  0% {
+    box-shadow: 0 0 5px 2px rgba(0, 255, 0, 0.4),
+                0 0 10px 5px rgba(0, 255, 0, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 10px 5px rgba(0, 255, 0, 0.8),
+                0 0 15px 5px rgba(0, 255, 0, 0.5);
+    transform: scale(1.2);
+  }
+  100% {
+    box-shadow: 0 0 5px 2px rgba(0, 255, 0, 0.4),
+                0 0 10px 5px rgba(0, 255, 0, 0.2);
+    transform: scale(1);
+  }
 }

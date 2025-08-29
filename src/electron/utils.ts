@@ -1,5 +1,6 @@
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { client } from "./bilibiliClient.js";
 import fs from 'fs';
 import path from "path";
 import os from 'os';
@@ -17,17 +18,17 @@ export function extractBV(url: url): url | null {
 export async function getCid(bid: bvid): Promise<cid | null> {
     try {
         const url = `https://api.bilibili.com/x/player/pagelist?bvid=${bid}`;
-        const response = await axios.get(url);
+        const response = await client.get(url);
 
         if (response.data.code !== 0) {
-            throw new Error(`API 请求失败，code: ${response.data.code}`);
+            throw new Error(`API request error, code: ${response.data.code}`);
         }
 
         const cid = response.data.data[0].cid || null;
 
         return cid;
     } catch (error) {
-        console.error('获取 cid 失败:', error);
+        console.error('get cid fail:', error);
         throw error;
   }
 }
@@ -36,29 +37,33 @@ export async function getCid(bid: bvid): Promise<cid | null> {
 const headers = {
   'User-Agent': 'Mozilla/5.0',
   'Referer': 'https://www.bilibili.com',
-  'Cookie': 'SESSDATA=d4f6abe0%2C1765342225%2C4d5e4%2A62CjDCcPPUNsV74lr5E4XcRoFjG4nrDdaITIm52-joc99aoI65gOWdrGNWKvfhF_fu1aASVlgxZTZ5RnBsTmJ5MzIwWW9FZVlPMGthR3hpU1NfeHNlN0NkNGZ3V1dST3hoRXVIcUJNMEJaZmE2NUdVSU9pNVNPNTdtRm1rU3VhSzJiMGxFeEwwdWl3IIEC',
+  'Origin': 'https://www.bilibili.com',
 };
 
 export async function getPlayUrl(bvid: bvid, cid: cid): Promise<string> {
   try {
-    const api = `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&qn=80&fnval=0&otype=json`;
-    const response = await axios.get(
-      api, 
-      { 
-        headers,
-        proxy: false,
-      }
-    );
+    const api = `https://api.bilibili.com/x/player/playurl?bvid=${bvid}&cid=${cid}&qn=116&fnval=80&otype=json`;
+    const response = await client.get(api);
 
     if (response.data.code !== 0) {
-      throw new Error(`请求失败 code=${response.data.code}`);
+      throw new Error(`request error, code=${response.data.code}`);
     }
 
-    const url = response.data.data.durl[0].url;
+    const dashVideos = response.data.data.dash?.video;
+    const durlVideos = response.data.data.durl;
+
+    let url = '';
+
+    if (dashVideos && dashVideos.length > 0) {
+      url = dashVideos[0].baseUrl;
+    } else if (durlVideos && durlVideos.length > 0) {
+      url = durlVideos[0].url;
+    }
+
     const result = url.replace('\\u002f', '&');
     return result;
   } catch (err) {
-    console.error('❌ 获取视频直链失败:', err);
+    console.error('get video direct link fail:', err);
     throw err;
   }
 }
@@ -86,16 +91,17 @@ let currentWriteStream: fs.WriteStream | null = null;
 export function registerVideoDownloader(win: BrowserWindow) {
   ipcMain.handle('start_download', async (_e, { url, filePath }) => {
     try {
-      const head = await axios.head(url, {
+        const head = await client.head(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Referer': 'https://www.bilibili.com/',
-        },
+          'User-Agent': headers['User-Agent'],
+          'Referer': headers['Referer'],
+          'Origin': headers['Origin'],
+        }
       });
 
       const totalSize = parseInt(head.headers['content-length'] || '0', 10);
       if (!head.headers['accept-ranges']?.includes('bytes')) {
-        throw new Error('服务器不支持 Range 多线程下载');
+        throw new Error('server does not support Range multi-threaded download');
       }
 
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bili-download-'));
@@ -103,11 +109,12 @@ export function registerVideoDownloader(win: BrowserWindow) {
       let downloaded = 0;
 
       const downloadPart = async (start: number, end: number, index: number) => {
-        const response = await axios.get(url, {
+        const response = await client.get(url, {
           headers: {
             'Range': `bytes=${start}-${end}`,
-            'User-Agent': 'Mozilla/5.0',
-            'Referer': 'https://www.bilibili.com/',
+            'User-Agent': headers['User-Agent'],
+            'Referer': headers['Referer'],
+            'Origin': headers['Origin'],
           },
           responseType: 'stream',
         });

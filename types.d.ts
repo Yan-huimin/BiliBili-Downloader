@@ -6,6 +6,9 @@ type EventPayloadMapping = {
     setVideoFolder: string,
     urlPage: url,
     filePath: filePathExist,
+    getQr: QRInfo,
+    poll_qrcode_status: qrcode_key,
+    sendSuccessInfo: downloadSuccess,
 }
 
 /*
@@ -14,7 +17,6 @@ type EventPayloadMapping = {
 */
 
 type __DEVTOOLS_OPENED__ = boolean;
-
 
 /* ******************************** */
 
@@ -25,11 +27,29 @@ type bvid = string;
 type url = string;
 type filePathExist = string;
 type cid = number;
+type qrcode_key = string;
 type header = {
     UserAgent: string,
     Referer: string,
     Cookie: string,
+};
+type QRInfo = {
+    url: string,
+    qrcode_key: string,
+};
+type UserInfo = {
+  id: string;
+  nickname: string;
+  avatar?: string;
+  membership: 'SVIP' | 'Diamond' | 'VIP' | 'Regular';
+  verified: boolean;
+  status: string;
+};
+type downloadSuccess = {
+    types: string,
+    message: string
 }
+
 
 interface Window{
     electron: {
@@ -41,5 +61,10 @@ interface Window{
         openPage: (payload: urlPage)  => void;
         checkFileExist: (payload: filePathExist) => filePath;
         on: (channel: string, callback: (...args: any[]) => void) => void;
+        sendSuccessInfo: (payload: downloadSuccess) => void;
+    },
+    biliApi:{
+        getQr: () => Promise<QRInfo>;
+        pollQRCodeStatus: (payload: qrcode_key) => Promise<qrcode_key>
     }
 }

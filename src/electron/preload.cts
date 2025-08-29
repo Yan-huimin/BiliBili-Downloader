@@ -33,10 +33,18 @@ electron.contextBridge.exposeInMainWorld(
     setVideoFolder: () => ipcInvoke('setVideoFolder'),
     openPage: (payload: url) => ipcSend('urlPage', payload),
     checkFileExist: (payload: filePathExist) => ipcInvoke_1('filePath', payload),
+    sendSuccessInfo: (payload: downloadSuccess) => ipcSend('sendSuccessInfo', payload),
     on: (channel, callback) => {
       ipcRenderer.on(channel, (_event, ...args) => callback(...args));
     },
   } satisfies Window["electron"] & {
     on: (channel: string, callback: (...args: any[]) => void) => void;
   }
+);
+
+electron.contextBridge.exposeInMainWorld(
+  "biliApi",{
+    getQr: () => ipcInvoke('getQr'),
+    pollQRCodeStatus: (payload: qrcode_key) => ipcInvoke_1("poll_qrcode_status", payload),
+  } satisfies Window["biliApi"]
 );

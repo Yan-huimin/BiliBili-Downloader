@@ -1,0 +1,72 @@
+.header_a{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  background-color: #000000;
+}
+
+.header_a button {
+  all: unset;
+  border-radius: 50%;
+  width: 1rem;
+  height: 1rem;
+  margin: 0.25rem;
+  --webkit-app-region: no-drag;
+}
+
+#close {
+  background-color: red;
+}
+
+#minimize {
+  background-color: yellow;
+}
+
+#maximize {
+  background-color: lime;
+}
+
+#close, #minimize, #maximize {
+  cursor: pointer;
+}
+
+#close:hover {
+  background-color: #ff0000ab;
+}
+
+#minimize:hover {
+  background-color: #ffff00c5;
+}
+
+#maximize:hover {
+  background-color: #00ff00d1;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #a0aec0 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #cbd5e0, #a0aec0);
+  border-radius: 12px;
+  /* 去掉阴影以保证圆角显示 */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a0aec0, #718096);
+}

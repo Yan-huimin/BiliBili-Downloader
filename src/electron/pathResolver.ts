@@ -18,3 +18,7 @@ export function getDefaultVideoPath() {
     const videoPath = app.getPath('videos');
     return videoPath;
 }
+
+export function getCookiesPath() {
+    return path.join(app.getPath('userData'), 'biliCookies.json');
+}
