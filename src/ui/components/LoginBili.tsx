@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import '../css/Settings.css';
+import '../css/LoginBili.css';
 import headPic from "../assets/bilibiliLoginPicture.png";
 import QRCode from 'react-qr-code';
 
@@ -19,6 +19,7 @@ const LoginBili: React.FC<MyModalProps> = ({ visible, onClose, setLoginstatus, L
   const [QRCodeKey, setQRCodeKey] = useState("");
   const timerRef = React.useRef<NodeJS.Timeout | null>(null);
   const [status, setStatus] = useState("");
+  //@ts-ignore
   const [loginStatus, setLoginStatus] = useState(false);
 
   const fetchQRCode = async () => {
@@ -70,23 +71,23 @@ const LoginBili: React.FC<MyModalProps> = ({ visible, onClose, setLoginstatus, L
     };
   }, []);
 
-useEffect(() => {
-  const handleClickOutside = (e: MouseEvent) => {
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      onClose(); // 如果点击的是组件外部，关闭模态框
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose(); // 如果点击的是组件外部，关闭模态框
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
     }
-  };
 
-  if (visible) {
-    document.addEventListener('mousedown', handleClickOutside);
-  } else {
-    document.removeEventListener('mousedown', handleClickOutside);
-  }
-
-  return () => {
-    document.removeEventListener('mousedown', handleClickOutside);
-  };
-}, [visible]);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [visible]);
 
   if (!visible) return null;
 
@@ -99,7 +100,7 @@ useEffect(() => {
       style={{ left: position.left, top: position.top }}
     >
       <div className='w-50 h-50 flex flex-col justify-center items-center'>
-        <span className=''>
+        <span className='select-none pointer-events-none'>
           <img src={headPic} alt="封面" className='w-full h-full' />
         </span>
         <hr className='text-blue-500' />

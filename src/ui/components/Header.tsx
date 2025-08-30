@@ -1,4 +1,3 @@
-import React from 'react';
 import '../css/Header.css';
 
 const Header = ({ isActive }: { isActive: boolean }) => {

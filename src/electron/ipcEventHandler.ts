@@ -1,9 +1,11 @@
 import { BrowserWindow, ipcMain, shell, Notification } from "electron";
 import { IpcMainHandle, IpcMainOn } from "./ipcTools.js";
-import { ensureExistCookiesFile, extractBV, getCid, getPlayUrl, loadCookies, saveCookies, setSaveFolder } from "./utils.js";
-import { getDefaultVideoPath } from "./pathResolver.js";
+import { ensureExistCookiesFile, ensureExistSettingsFile, extractBV, getCid, getPlayUrl, loadCookies, logout, saveCookies, setSaveFolder } from "./utils.js";
+import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
 import fs from 'fs';
 import { client, jar } from "./bilibiliClient.js";
+import ffmpegPath from 'ffmpeg-static';
+import { get } from "http";
 
 export function setupIpcHandlers(win: BrowserWindow){
     // 监听窗口打开、最小化、最大化事件
@@ -21,17 +23,17 @@ export function setupIpcHandlers(win: BrowserWindow){
         }
     });
 
-    IpcMainHandle('sendLink', async (v_url) => {
-        const bv = extractBV(v_url);
+    IpcMainHandle('sendLink', async (v_url: dashUrl) => {
+        const bv = extractBV(v_url.video_url);
 
-        if(bv === null) return "";
+        if(bv === null) return { video_url: "", audio_url: "" };
 
         const cid = await getCid(bv);
 
-        if(cid === null)    return "";
+        if(cid === null)    return { video_url: "", audio_url: "" };
 
-        const video_durl = await getPlayUrl(bv, cid);
-        return video_durl ?? "";
+        const url = await getPlayUrl(bv, cid);
+        return url ?? { video_url: "", audio_url: "" };
     });
 
     IpcMainHandle('setVideoFolder', async () => {
@@ -57,6 +59,11 @@ export function setupIpcHandlers(win: BrowserWindow){
         setTimeout(() => {
           notification.close();
         }, 2500);
+    });
+
+    IpcMainOn('setSettings', (payload: Settings) => {
+        ensureExistSettingsFile();
+        fs.writeFileSync(getSettingsPath(), JSON.stringify(payload, null, 2), 'utf-8');
     });
 
     ipcMain.handle("getQr", async () => {
@@ -91,5 +98,22 @@ export function setupIpcHandlers(win: BrowserWindow){
     IpcMainHandle('check_login', async () => {
         const res = await client.get("https://api.bilibili.com/x/web-interface/nav");
         return res.data.code === 0;
+    });
+
+    IpcMainHandle('getUserInfo', async () => {
+        const res = await client.get("https://api.bilibili.com/x/web-interface/nav");
+        return res.data.data;
+    });
+
+    IpcMainHandle('logOut', async () => {
+        const res = await client.post("https://passport.bilibili.com/login/exit/v2");
+        logout();
+        return res.data.code === 0;
+    });
+
+    IpcMainHandle('loadSettings', async () => {
+        ensureExistSettingsFile();
+        const data = fs.readFileSync(getSettingsPath(), 'utf-8');
+        return JSON.parse(data) as Settings;
     });
 }

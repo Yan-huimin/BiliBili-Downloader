@@ -1,7 +1,14 @@
 {
  "appId": "com.yhm.bili",
- "files": ["dist-electron", "dist-react"],
- "icon": "./desktopIcon.png", 
+ "files": [
+    "dist-electron",
+    "dist-react",
+    "node_modules/ffmpeg-static/**/*"
+],
+  "asarUnpack": [
+    "node_modules/ffmpeg-static/**"
+  ],
+ "icon": "./desktopIcon.png",
  "extraResources": ["dist-electron/preload.cjs", "src/assets/**"],
  "mac": {
      "target": "dmg"

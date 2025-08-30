@@ -5,3 +5,28 @@ body {
     user-select: none;
     background-color: rgb(0, 0, 0);
 }
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #a0aec0 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #cbd5e0, #a0aec0);
+  border-radius: 12px;
+  /* 去掉阴影以保证圆角显示 */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a0aec0, #718096);
+}
