@@ -320,14 +320,23 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
   await Promise.all(tasks);
 
   // 合并分片
+  // 合并分片（流式写入，避免内存爆掉）
   const writeStream = fs.createWriteStream(targetPath);
   currentWriteStream = writeStream;
+
   for (let i = 0; i < THREAD_COUNT; i++) {
     const partPath = path.join(tempDir, `part_${i}`);
-    const data = fs.readFileSync(partPath);
-    writeStream.write(data);
-    fs.unlinkSync(partPath);
+    await new Promise<void>((resolve, reject) => {
+      const readStream = fs.createReadStream(partPath);
+      readStream.on("error", reject);
+      readStream.on("end", () => {
+        fs.unlinkSync(partPath);  // 删除分片
+        resolve();
+      });
+      readStream.pipe(writeStream, { end: false }); // 不要关闭主写流
+    });
   }
+
   writeStream.end();
   fs.rmdirSync(tempDir);
 }
