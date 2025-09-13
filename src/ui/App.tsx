@@ -12,6 +12,7 @@ import { TbMathFunction } from "react-icons/tb";
 import { motion, AnimatePresence } from "framer-motion";
 import { BiCog } from "react-icons/bi";
 import Settings from './components/Settings';
+import { FaClock } from "react-icons/fa";
 
 function App() {
   const [shareLink, setShareLink] = useState('')
@@ -195,6 +196,11 @@ const startDownload = async (link: dashUrl): Promise<boolean> => {
                     {
                       isDarkTheme ? <MdLightMode size={20} onClick={() => setIsDarkTheme(false)} /> : <MdDarkMode size={20} onClick={() => setIsDarkTheme(true)} />
                     }
+                  </span>
+                  <span className="p-2 rounded-full shadow cursor-pointer hover:scale-130">
+                    <FaClock size={20} onClick={() => {
+                      showAlertMessage('当前时间: ' + new Date().toLocaleTimeString());
+                    }} />
                   </span>
                   <span className="p-2 rounded-full shadow cursor-pointer hover:scale-130">
                   {!loginStatus ? 
