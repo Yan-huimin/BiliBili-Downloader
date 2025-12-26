@@ -569,7 +569,9 @@ export async function ensureExistSettingsFile() {
     if(!isExistSettingsFile()){
         const defaultSettings: Settings = {
             videoQuality: 64,
-            downloadPath: getDefaultVideoPath()
+            downloadPath: getDefaultVideoPath(),
+            systemNotification: false,
+            fireworkParticles: false,
         };
         fs.writeFileSync(getSettingsPath(), JSON.stringify(defaultSettings, null, 2), 'utf-8');
     }

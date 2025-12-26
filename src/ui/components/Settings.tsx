@@ -19,7 +19,10 @@ const Settings: React.FC<MyModalProps> = ({ visible, onClose, setMainPageStatus,
   const [loginStatus, setLoginStatus] = useState(false);
   const [userInfo, setUserInfo] = useState({ uname: '未登录', head: 'null', vip: false });
   const [selectedQuality, setSelectedQuality] = useState<number | null>(64); // 默认选中720p
-  const [defaultDownloadPath, setDefaultDownloadPath] = useState<string>('C:\\Users\\Username\\Downloadsdsafffffffffffffffffffffff');
+  //@ts-ignore
+  const [systemNotification, setSystemNotification] = useState<boolean>(false);
+  const [fireworkParticles, setFireworkParticles] = useState<boolean>(false);
+  const [defaultDownloadPath, setDefaultDownloadPath] = useState<string>('C:\\Users\\Username\\Downloads');
 
   const videoQualityOptions = [
     { label: '360p', qn: 6, text: '360p', vip: false },
@@ -53,6 +56,8 @@ const Settings: React.FC<MyModalProps> = ({ visible, onClose, setMainPageStatus,
       console.log(settings);
       setSelectedQuality(settings.videoQuality);
       setDefaultDownloadPath(settings.downloadPath);
+      setSystemNotification(settings.systemNotification);
+      setFireworkParticles(settings.fireworkParticles);
     };
 
     fetchSettings();
@@ -121,17 +126,17 @@ const Settings: React.FC<MyModalProps> = ({ visible, onClose, setMainPageStatus,
         <hr className='text-green-500' />
             <div className='w-full mt-1 overflow-y-auto custom-scrollbar'>
                 <ul className="text-white text-xs flex flex-col gap-2 w-full border border-gray-700 rounded-md p-2">
-                    <li className="text-blue-400 text-xs cursor-default">清晰度</li>
+                    <li className="text-blue-500 text-xs cursor-default">清晰度</li>
                     {videoQualityOptions.map((item) => {
                         if (!userInfo.vip && item.vip) return null;
                         return (
-                            <li
+                        <li
                             key={item.qn}
                             className={`flex flex-wrap items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-gray-700 
                                 ${selectedQuality === item.qn ? 'bg-gray-600 text-green-500' : ''}
                                 ${ !userInfo.vip && item.vip ? 'opacity-50 cursor-not-allowed' : ''}
-                            ${ !userInfo.vip && item.vip ? 'bg-gray-100' : ''}`}
-                        onClick={() => {
+                                ${ !userInfo.vip && item.vip ? 'bg-gray-100' : ''}`}
+                            onClick={() => {
                             if (!userInfo.vip && item.vip) return;
                             selectQuality(item.qn);
                         }}
@@ -151,6 +156,34 @@ const Settings: React.FC<MyModalProps> = ({ visible, onClose, setMainPageStatus,
                         </li>
                         );
                     })}
+                </ul>
+                <ul className="text-white text-xs flex flex-col gap-2 w-full border border-gray-700 rounded-md p-2 mt-4">
+                    <li className="text-blue-400 text-xs">
+                        其他设置
+                    </li>
+                    <hr />
+                    {/* 系统通知开关 */}
+                    <li className='flex flex-row items-center p-2 rounded-lg cursor-pointer hover:bg-gray-700'>
+                        <input
+                            type="checkbox"
+                            checked={systemNotification}
+                            onChange={() => {
+                                setSystemNotification(!systemNotification);
+                            }}
+                        />
+                        <span className='text-gray'>系统通知</span>
+                    </li>
+                    {/* 烟花特效开关 */}
+                    <li className='flex flex-row items-center p-2 rounded-lg cursor-pointer hover:bg-gray-700'>
+                        <input
+                            type="checkbox"
+                            checked={fireworkParticles}
+                            onChange={() => {
+                                setFireworkParticles(!fireworkParticles);
+                            }}
+                        />
+                        <span className='text-gray'>彩带特效</span>
+                    </li>
                 </ul>
                 <ul className="text-white text-xs flex flex-col gap-2 w-full border border-gray-700 rounded-md p-2">
                     <li className='text-blue-400 text-xs'>默认下载路径:</li>
@@ -179,7 +212,9 @@ const Settings: React.FC<MyModalProps> = ({ visible, onClose, setMainPageStatus,
                 onClick={async () => {
                     window.electron.setSettings({
                         videoQuality: selectedQuality,
-                        downloadPath: defaultDownloadPath
+                        downloadPath: defaultDownloadPath,
+                        systemNotification: systemNotification,
+                        fireworkParticles: fireworkParticles,
                     });
                     noticeSettingsSaved();
                     onClose();

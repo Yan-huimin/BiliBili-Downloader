@@ -1,6 +1,6 @@
 import Header from './components/Header';
 import './css/App.css';
-import { SetStateAction, useState, useEffect } from 'react';
+import { SetStateAction, useState, useEffect, useRef } from 'react';
 import { FaGithub } from "react-icons/fa";
 import confetti from 'canvas-confetti';
 import LoginBili from './components/LoginBili';
@@ -15,17 +15,19 @@ import Settings from './components/Settings';
 import { FaClock } from "react-icons/fa";
 
 function App() {
-  const [shareLink, setShareLink] = useState('')
-  const [savePath, setSavePath] = useState('')
-  const [isDownloading, setIsDownloading] = useState(false)
-  const [downloadProgress, setDownloadProgress] = useState(0)
-  const [showAlert, setShowAlert] = useState(false)
-  const [alertMessage, setAlertMessage] = useState('')
-  const [isDarkTheme, setIsDarkTheme] = useState(true)
+  const [shareLink, setShareLink] = useState('');
+  const [savePath, setSavePath] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [loginStatus, setLoginStatus] = useState(false);
   const [open, setOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const fireworkParticlesRef = useRef<boolean>(false);
+  const systemNotificationRef = useRef<boolean>(false);
 
   if (process.env.NODE_ENV === 'production') {
     window.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -84,8 +86,24 @@ const startDownload = async (link: dashUrl): Promise<boolean> => {
 
   return true;
 };
+  useEffect(() => {
+      window.electron.loadSettings().then((settings) => {
+      console.log("设置：" + JSON.stringify(settings));
+      if (settings.downloadPath) {
+        setSavePath(settings.downloadPath);
+      }
+      if (settings.fireworkParticles !== undefined) {
+        fireworkParticlesRef.current = settings.fireworkParticles;
+      }
+      if (settings.systemNotification !== undefined) {
+        systemNotificationRef.current = settings.systemNotification;
+      }
+    });
+  }, [showSettings]);
 
   useEffect(() => {
+    // 检查登录状态
+
     window.biliApi.checkLogin().then((isLoggedIn) => {
       setLoginStatus(isLoggedIn);
     });
@@ -99,15 +117,28 @@ const startDownload = async (link: dashUrl): Promise<boolean> => {
       showAlertMessage("下载完成");
       setIsDownloading(false);
       setDownloadProgress(0);
-      window.electron.sendSuccessInfo({
-        types: '下载成功',
-        message: `文件已下载到: ${filePath}`
-      });
-      confetti({
-        particleCount: 150,
-        spread: 30,
-        origin: {y: 0.8},
-      })
+
+      // 系统通知
+      if(systemNotificationRef.current){
+        console.log('发送系统通知');
+        window.electron.sendSuccessInfo({
+          types: '下载成功',
+          message: `文件已下载到: ${filePath}`
+        });
+      }else{
+        console.log('未启用系统通知');
+      }
+      // 彩带特效
+      if(fireworkParticlesRef.current){
+        console.log('播放彩带特效')
+        confetti({
+          particleCount: 150,
+          spread: 30,
+          origin: {y: 0.8},
+        })
+      }else{
+        console.log('未启用彩带特效');
+      }
     });
 
     window.electron?.on('download-error', (msg: string) => {

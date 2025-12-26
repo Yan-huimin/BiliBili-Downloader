@@ -16,10 +16,6 @@ type EventPayloadMapping = {
     loadSettings: Settings,
 }
 
-/*
- *
- ****\test
-*/
 
 type __DEVTOOLS_OPENED__ = boolean;
 
@@ -55,6 +51,8 @@ type downloadSuccess = {
 type Settings = {
     videoQuality: number | null;
     downloadPath: string;
+    systemNotification: boolean;
+    fireworkParticles: boolean;
 }
 type dashUrl = {
     video_url: string;
