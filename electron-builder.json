@@ -14,8 +14,9 @@
      "target": "dmg"
  },
  "linux": {
-     "target": "AppImage",
-     "category": "Utillity"
+     "target": "APPImage",
+     "category": "Utility",
+     "maintainer": "Yan Huimin <yanhuimin434@gmail.com>"
  },
  "win": {
      "target": ["portable", "nsis"]

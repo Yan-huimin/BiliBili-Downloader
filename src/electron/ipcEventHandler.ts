@@ -1,11 +1,9 @@
 import { BrowserWindow, ipcMain, shell, Notification } from "electron";
 import { IpcMainHandle, IpcMainOn } from "./ipcTools.js";
-import { ensureExistCookiesFile, ensureExistSettingsFile, extractBV, getCid, getPlayUrl, loadCookies, logout, saveCookies, setSaveFolder } from "./utils.js";
+import { ensureExistCookiesFile, ensureExistSettingsFile, extractBV, getCid, getPlayUrl, logout, saveCookies, setSaveFolder } from "./utils.js";
 import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
 import fs from 'fs';
 import { client, jar } from "./bilibiliClient.js";
-import ffmpegPath from 'ffmpeg-static';
-import { get } from "http";
 
 export function setupIpcHandlers(win: BrowserWindow){
     // 监听窗口打开、最小化、最大化事件

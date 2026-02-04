@@ -87,8 +87,14 @@ const startDownload = async (link: dashUrl): Promise<boolean> => {
   return true;
 };
   useEffect(() => {
-      window.electron.loadSettings().then((settings) => {
+    if (!window.electron?.loadSettings) {
+      console.warn("electron API not available, skip loadSettings");
+      return;
+    }
+
+    window.electron.loadSettings().then((settings) => {
       console.log("设置：" + JSON.stringify(settings));
+
       if (settings.downloadPath) {
         setSavePath(settings.downloadPath);
       }
@@ -104,6 +110,19 @@ const startDownload = async (link: dashUrl): Promise<boolean> => {
   useEffect(() => {
     // 检查登录状态
 
+    if (!window.electron?.checkFileExist || 
+        !window.biliApi?.checkLogin || 
+        !window.electron?.onDownloadProgress || 
+        !window.electron?.on || 
+        !window.electron?.sendSuccessInfo || 
+        !window.electron?.startDownload || 
+        !window.electron?.sendLinkAndDownloadMp4|| 
+        !window.electron?.openPage|| 
+        !window.electron?.setVideoFolder||
+        !window.electron?.loadSettings) {
+      console.warn("electron API not available");
+      return;
+    }
     window.biliApi.checkLogin().then((isLoggedIn) => {
       setLoginStatus(isLoggedIn);
     });

@@ -1,4 +1,4 @@
-import { BrowserWindow, globalShortcut, session } from "electron";
+import { BrowserWindow, globalShortcut } from "electron";
 import { getPreloadPath, getUiPath } from "./pathResolver.js";
 import { isDev, loadCookies } from "./utils.js";
 
