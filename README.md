@@ -1,72 +1,125 @@
-# <font color='Blue'>*BiliBili-Downloader  [![](https://img.shields.io/badge/--00000000?logo=bilibili&logoColor=00A1D6)](https://github.com/Yan-huimin/BiliBili-Downloader/tree/v1.0.1)*</font>
+# BiliBili Downloader
 
-[![Bilibili Downloader](https://img.shields.io/badge/BiliBili_Downloader-v1.0.1-00A1D6?logo=bilibili&logoColor=whit)](https://github.com/Yan-huimin/BiliBili-Downloader/tree/v1.0.1)   [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB) ](https://reactjs.org) 
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)      [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Bilibili Downloader](https://img.shields.io/badge/BiliBili_Downloader-v1.0.6-00A1D6?logo=bilibili&logoColor=white)](https://github.com/Yan-huimin/BiliBili-Downloader)
+[![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Electron](https://img.shields.io/badge/Electron-47848F?logo=electron&logoColor=white)](https://www.electronjs.org)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
 
-------
+---
 
-在B站选择想要下载的视频的分享链接，输入到该软件中，选择想要保存的文件路径，点击下载即可，如若下载失败可以多尝试几次。
+一个基于 Electron + React + TypeScript 的 Bilibili 视频下载桌面应用。
 
-<img src="./public/app.png" alt="app" style="zoom:50%;" />
+将 B站视频分享链接粘贴到软件中，选择保存路径，点击下载即可。支持多种清晰度选择、多线程下载、B 站账号登录等功能。
 
-## **:sunny: /:first_quarter_moon_with_face:** 支持黑夜和白天两种主题
+![app](./public/app.png)
 
-点击右下方的按键即可切换主题。
+---
 
-******
+## 功能
 
-> :sunny:白昼：
->
-> <img src="./public/day.png" alt="day" style="zoom:50%;" />
+### 已实现
 
-******
+- 下载 B 站免费视频（支持 BV 号格式）
+- 多线程下载，支持视频/音频分离后自动合并（ffmpeg）
+- 下载进度条实时显示
+- 用户自定义文件保存路径（文件夹选择器）
+- **明/暗双主题** — 点击右下角功能菜单切换
+- **B 站账号登录** — 扫码登录，自动保持登录状态约 30 天
+- **多种清晰度** — 支持 360p / 480p / 720p / 720p 高帧率 / 1080p / 1080p 高码率 / 1080p 60帧 / 4K（大会员专属清晰度需要登录对应账号）
+- **默认配置** — 可保存默认清晰度、默认下载路径
+- **系统通知** — 下载完成后弹出系统通知，2 秒后自动消失
+- **彩带特效** — 下载成功后播放彩带动画
+- **设置项开关** — 系统通知、彩带特效均可独立开关
+- **自定义窗口标题栏** — 支持关闭、最小化、最大化按钮
 
-> :first_quarter_moon_with_face: 黑夜：
->
-> <img src="./public/app.png" alt="dark" style="zoom:50%;" />
+### 待实现
 
-******
+- 支持其他视频格式（目前仅支持 BV 号视频）
+- 合集视频一键下载
+- 软件内查看下载视频信息
+- 下载速率显示
+- 下载耗时显示
+- 历史下载记录
+- 自定义视频文件名
+- 软件自动更新
 
-## :mag_right: <font color=pink>功能：</font>
+> 当前不考虑 UI 重构，如果你擅长前端，欢迎 PR。
 
-- :white_check_mark:下载B站的免费视频：视频号以BV开头的视频，其他格式并不支持
-- :white_check_mark: 视频下载进度条显示
-- :white_check_mark:允许用户选择文件保存路径
-- :white_check_mark: 主题切换
-- :white_check_mark: 登录B站账户进行视频的下载（保持自动登录状态30天左右）
-- :white_check_mark: 支持不同清晰度等（包括4k, 1080p, 1080p高帧率……）视频的下载
-- :white_check_mark: 支持进行默认配置的更新（包括默认下载清晰度、默认下载路径、暂时不支持主题的配置，后续将会添加）
-- :white_check_mark: 下载成功后将会弹出系统通知，显示下载路径、2s后自动消失
-- :white_check_mark: 系统通知设置
-- :white_check_mark: 彩带特效设置​
-- :x: 支持不同视频号的视频的下载（当前仅支持BV视频的下载）
-- :x: 支持合集视频的一键下载
-- :x: 支持在本软件中查看下载视频的相关信息
-- :x: 下载速率的显示
-- :x: 下载时间的显示
-- :x: 历史下载记录显示
-- :x: 自定义视频下载名称
-- :x: 软件的自动更新
+---
 
-:star2: 当前不考虑UI的修改（因为完全不会写前端:smile:）
+## 截图
 
+### 亮色主题
 
+![亮色主题](./public/day.png)
 
+### 暗色主题
 
+![暗色主题](./public/app.png)
 
+---
 
+## 技术栈
 
+| 层 | 技术 |
+| --- | --- |
+| 前端框架 | React 19 |
+| 构建工具 | Vite |
+| 桌面框架 | Electron 36 |
+| 样式 | Tailwind CSS 4 |
+| 语言 | TypeScript |
+| 动画 | Framer Motion |
+| 二维码 | react-qr-code |
+| 视频合并 | ffmpeg (ffmpeg-static) |
+| HTTP 请求 | axios + axios-cookiejar-support |
 
+---
 
+## 开发
 
+```bash
+# 安装依赖
+npm install
 
+# 启动开发模式（React + Electron 并行）
+npm run dev
 
+# 仅启动 React 开发服务器
+npm run dev:react
 
+# 仅编译 Electron
+npm run dev:electron
 
+# 构建
+npm run build
+```
 
+## 打包
 
+```bash
+# macOS (ARM64)
+npm run dist:mac
 
+# Windows (x64)
+npm run dist:win
 
+# Linux (x64)
+npm run dist:linux
+```
 
+## 测试
 
+```bash
+npm run test:e2e
+```
 
+## 环境要求
+
+- Node.js >= 18
+- npm >= 9
+
+## 许可
+
+&copy; 2025 yhm
