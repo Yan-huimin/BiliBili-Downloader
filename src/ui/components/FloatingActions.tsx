@@ -1,0 +1,125 @@
+import { useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BiCog } from 'react-icons/bi';
+import { FaClock } from 'react-icons/fa';
+import { RiBilibiliFill } from 'react-icons/ri';
+import { MdDarkMode, MdLightMode } from 'react-icons/md';
+import { TbMathFunction } from 'react-icons/tb';
+
+type FloatingActionsProps = {
+  isDarkTheme: boolean;
+  loginStatus: boolean;
+  open: boolean;
+  onOpenLogin: () => void;
+  onOpenSettings: () => void;
+  onShowCurrentTime: () => void;
+  onClose: () => void;
+  onToggleOpen: () => void;
+  onToggleTheme: () => void;
+  onAlreadyLoggedIn: () => void;
+};
+
+function FloatingActions({
+  isDarkTheme,
+  loginStatus,
+  onAlreadyLoggedIn,
+  onClose,
+  onOpenLogin,
+  onOpenSettings,
+  onShowCurrentTime,
+  onToggleOpen,
+  onToggleTheme,
+  open,
+}: FloatingActionsProps) {
+  const actionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (actionsRef.current && !actionsRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [onClose, open]);
+
+  const closeAfterAction = (action: () => void) => {
+    action();
+    onClose();
+  };
+
+  return (
+    <div className="floating-actions" data-testid="changeModeContainer" ref={actionsRef}>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="floating-actions__menu"
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.16, ease: 'easeOut' }}
+          >
+            <button
+              aria-label={isDarkTheme ? '切换到明亮主题' : '切换到暗黑主题'}
+              className="floating-actions__item"
+              onClick={() => closeAfterAction(onToggleTheme)}
+              title={isDarkTheme ? '切换到明亮主题' : '切换到暗黑主题'}
+              type="button"
+            >
+              {isDarkTheme ? <MdLightMode /> : <MdDarkMode />}
+            </button>
+            <button
+              aria-label="显示当前时间"
+              className="floating-actions__item"
+              onClick={() => closeAfterAction(onShowCurrentTime)}
+              title="当前时间"
+              type="button"
+            >
+              <FaClock />
+            </button>
+            <button
+              aria-label={loginStatus ? '已登录' : '登录哔哩哔哩'}
+              className="floating-actions__item"
+              onClick={() => closeAfterAction(loginStatus ? onAlreadyLoggedIn : onOpenLogin)}
+              title={loginStatus ? '已登录' : '登录哔哩哔哩'}
+              type="button"
+            >
+              <RiBilibiliFill />
+            </button>
+            <button
+              aria-label="打开设置"
+              className="floating-actions__item"
+              onClick={() => closeAfterAction(onOpenSettings)}
+              title="设置"
+              type="button"
+            >
+              <BiCog />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <button
+        aria-expanded={open}
+        aria-label="快捷功能"
+        className="floating-actions__trigger"
+        data-testid="changeModeBtn"
+        onClick={onToggleOpen}
+        title={isDarkTheme ? '切换到明亮主题' : '切换到暗黑主题'}
+        type="button"
+      >
+        <TbMathFunction />
+      </button>
+    </div>
+  );
+}
+
+export default FloatingActions;

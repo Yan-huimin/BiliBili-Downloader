@@ -1,7 +1,7 @@
 {
   "name": "bilibili-downloader",
   "private": true,
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -35,7 +35,7 @@
     "@tailwindcss/vite": "^4.1.10",
     "@types/canvas-confetti": "^1.9.0",
     "@types/electron": "^1.6.12",
-    "@types/node": "^24.0.1",
+    "@types/node": "^24.12.3",
     "@types/qrcode.react": "^3.0.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",

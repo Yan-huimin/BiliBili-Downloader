@@ -1,32 +1,54 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  width: 100%;
+}
+
 body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    user-select: none;
-    background-color: rgb(0, 0, 0);
+  background: #edf3f8;
+  user-select: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  -webkit-app-region: no-drag;
 }
 
 .custom-scrollbar {
+  scrollbar-color: color-mix(in srgb, var(--muted) 62%, transparent) transparent;
   scrollbar-width: thin;
-  scrollbar-color: #a0aec0 transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  height: 8px;
+  width: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 12px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #cbd5e0, #a0aec0);
-  border-radius: 12px;
-  /* 去掉阴影以保证圆角显示 */
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #a0aec0, #718096);
+  background: color-mix(in srgb, var(--muted) 42%, transparent);
+  border-radius: 999px;
 }
