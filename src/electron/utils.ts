@@ -1,13 +1,21 @@
-import { app, BrowserWindow, dialog, ipcMain, session, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
 import { client, jar } from "./bilibiliClient.js";
+import {
+  clearBiliLoginCookies,
+  clearCookieJar,
+  clearCookiesFile as clearStoredCookiesFile,
+  clearElectronCookies as clearStoredElectronCookies,
+  ensureCookiesFile,
+  getBiliCookieString as readBiliCookieString,
+  loadCookies as loadStoredCookies,
+  saveCookies as saveStoredCookies,
+} from "./cookieStore.js";
 import fs from 'fs';
 import path from "path";
 import os from 'os';
-import { getCookiesPath, getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
-import { promisify } from "util";
-import { CookieJar } from "tough-cookie";
+import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
+import type { CookieJar } from "tough-cookie";
 import { spawn } from "child_process";
-import _ffmpegPath from "ffmpeg-static";
 
 export function isDev(): boolean {
  return process.env.NODE_ENV === 'development';
@@ -50,6 +58,18 @@ const headers = {
   'Origin': 'https://www.bilibili.com',
 };
 
+type BiliDashMedia = {
+  id?: number;
+  bandwidth?: number;
+  baseUrl?: string;
+  base_url?: string;
+};
+
+type BiliDash = {
+  video: BiliDashMedia[];
+  audio?: BiliDashMedia[];
+};
+
 export async function getPlayUrl(bvid: bvid, cid: cid): Promise<dashUrl> {
   try {
     const { videoQuality, downloadPath } = getSettings();
@@ -76,25 +96,26 @@ export async function getPlayUrl(bvid: bvid, cid: cid): Promise<dashUrl> {
       return { video_url: url, audio_url: url }; // durl 是 MP4 已经整合音视频
     }
 
-    const dash = response.data.data.dash;
+    const dash = response.data.data.dash as BiliDash | undefined;
     if (!dash) throw new Error('no dash data returned');
 
     // 视频轨道：按清晰度选择
     let videoUrl = '';
-    const targetVideo = dash.video.find((v: any) => v.id === videoQuality);
+    const targetVideo = dash.video.find((v) => v.id === videoQuality);
     if (targetVideo) {
-      videoUrl = targetVideo.baseUrl || targetVideo.base_url;
+      videoUrl = targetVideo.baseUrl ?? targetVideo.base_url ?? '';
     } else {
-      videoUrl = dash.video[0].baseUrl || dash.video[0].base_url; // fallback
+      const fallbackVideo = dash.video[0];
+      videoUrl = fallbackVideo?.baseUrl ?? fallbackVideo?.base_url ?? '';
     }
 
     // 音频轨道：一般 dash.audio 里有多个，选码率最高的
     let audioUrl = '';
     if (dash.audio && dash.audio.length > 0) {
-      const bestAudio = dash.audio.reduce((a: any, b: any) =>
-        (a.bandwidth > b.bandwidth ? a : b)
+      const bestAudio = dash.audio.reduce((a, b) =>
+        ((a.bandwidth ?? 0) > (b.bandwidth ?? 0) ? a : b)
       );
-      audioUrl = bestAudio.baseUrl || bestAudio.base_url;
+      audioUrl = bestAudio.baseUrl ?? bestAudio.base_url ?? '';
     }
 
     const result_video = videoUrl.replace('\\u002f', '/');
@@ -262,7 +283,7 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
       if (!head.headers['accept-ranges']?.includes('bytes')) {
         throw new Error('server does not support Range');
       }
-    } catch (e) {
+    } catch {
       // 如果下载失败，就走单线程，降级为单线程下载
       const resp = await client.get(url, {
         headers: {
@@ -470,30 +491,16 @@ app.on('before-quit', () => {
 });
 
 
-function isExistCookiesFile(): boolean{
-    return fs.existsSync(getCookiesPath());
-}
-
 export async function ensureExistCookiesFile() {
-    if(!isExistCookiesFile()){
-        const serialized = await promisify(jar.serialize.bind(jar))();
-        fs.writeFileSync(getCookiesPath(), JSON.stringify(serialized, null, 2), 'utf-8');
-    }
+  await ensureCookiesFile(jar);
 }
 
 export async function saveCookies() {
-  const serialized = await jar.serialize();
-  fs.writeFileSync(getCookiesPath(), JSON.stringify(serialized, null, 2), 'utf-8');
+  await saveStoredCookies(jar);
 }
 
 export async function loadCookies(): Promise<CookieJar | null> {
-  const path = getCookiesPath();
-  if (!fs.existsSync(path)) return null;
-
-  const data = JSON.parse(fs.readFileSync(path, 'utf-8'));
-  // 使用静态方法反序列化
-  const jar = CookieJar.deserialize(data);
-  return jar;
+  return loadStoredCookies();
 }
 
 // export function registerReferFromBili() {
@@ -528,37 +535,22 @@ export function registerBiliImageHeaders(targetSession?: Electron.Session) {
 // ---------------- 清空操作 ----------------
 // 清空 Cookie 文件内容（覆盖为空）
 export async function clearCookiesFile() {
-  const empty = await jar.serialize();
-  empty.cookies = [];
-  fs.writeFileSync(getCookiesPath(), JSON.stringify(empty, null, 2), "utf-8");
+  await clearStoredCookiesFile(jar);
 }
 
 // 清空 CookieJar（内存）
 export function clearJar() {
-  jar.removeAllCookiesSync();
+  clearCookieJar(jar);
 }
 
 // 清空 Electron session cookies
 export async function clearElectronCookies() {
-  const ses = session.defaultSession;
-  const allCookies = await ses.cookies.get({});
-
-  for (const cookie of allCookies) {
-    const domain = cookie.domain ?? "";
-    const url = `${cookie.secure ? "https" : "http"}://${domain.startsWith(".") ? domain.slice(1) : domain}${cookie.path}`;
-    try {
-      await ses.cookies.remove(url, cookie.name);
-    } catch (err) {
-      console.error("Failed to remove cookie:", err);
-    }
-  }
+  await clearStoredElectronCookies();
 }
 
 // ---------------- 统一退出登录 ----------------
 export async function logout() {
-  clearJar();                // 1. 清空内存中的 cookie
-  await clearCookiesFile();  // 2. 清空持久化文件
-  await clearElectronCookies(); // 3. 清空 electron 的 session cookie
+  await clearBiliLoginCookies(jar);
 }
 
 function isExistSettingsFile(): boolean{
@@ -575,4 +567,8 @@ export async function ensureExistSettingsFile() {
         };
         fs.writeFileSync(getSettingsPath(), JSON.stringify(defaultSettings, null, 2), 'utf-8');
     }
+}
+
+export async function getBiliCookieString() {
+  return readBiliCookieString(jar);
 }

@@ -11,9 +11,15 @@ interface LoginBiliProps {
   LoginSuccessNotic: (message: string) => void;
 }
 
-const LoginBili = ({ visible, onClose, setLoginstatus, LoginSuccessNotic }: LoginBiliProps) => {
+const LoginBili = ({
+  visible,
+  onClose,
+  setLoginstatus,
+  LoginSuccessNotic,
+}: LoginBiliProps) => {
   const modalRef = useClickOutside<HTMLDivElement>(visible, onClose);
   const { qrUrl, refreshQrCode, status } = useBiliQrLogin({
+    enabled: visible,
     onClose,
     onLoginSuccess: () => {
       setLoginstatus(true);
@@ -29,7 +35,7 @@ const LoginBili = ({ visible, onClose, setLoginstatus, LoginSuccessNotic }: Logi
     <div className="modal-layer">
       <div className="modal-panel login-panel glass-panel" ref={modalRef}>
         <div className="login-hero">
-          <img alt="封面" className="login-hero__image" src={headPic} />
+          <img alt="Bilibili 登录封面" className="login-hero__image" src={headPic} />
           <div className="qr-shell">
             {qrUrl ? <QRCode value={qrUrl} size={126} /> : <span className="qr-shell__empty">加载中</span>}
           </div>

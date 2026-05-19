@@ -23,7 +23,6 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
 
   const loadSettings = useCallback(async () => {
     const settings = await window.electron.loadSettings();
-    console.log(settings);
     setSelectedQuality(settings.videoQuality);
     setDefaultDownloadPath(settings.downloadPath);
     setSystemNotification(settings.systemNotification);
@@ -32,7 +31,14 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
 
   const fetchUserInfo = useCallback(async () => {
     const info = await window.biliApi.getUserInfo();
-    setLoginStatus(info.isLogin);
+
+    if (!info?.isLogin) {
+      setLoginStatus(false);
+      setUserInfo(DEFAULT_USER_INFO);
+      return;
+    }
+
+    setLoginStatus(true);
     setUserInfo({
       head: info.face,
       uname: info.uname,

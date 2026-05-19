@@ -1,13 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+const QR_POLL_INTERVAL_MS = 2000;
+
+const QR_LOGIN_CODE = {
+  SUCCESS: 0,
+  EXPIRED: 86038,
+  CONFIRMED: 86090,
+  WAITING: 86101,
+} as const;
+
+const QR_STATUS_TEXT = {
+  idle: '未登录',
+  loading: '二维码加载中',
+  waiting: '等待扫码...',
+  confirmed: '扫码成功，请在手机上确认',
+  success: '登录成功',
+  expired: '二维码已失效，请刷新',
+  error: '登录状态异常，请刷新重试',
+} as const;
+
 type UseBiliQrLoginOptions = {
+  enabled: boolean;
   onClose: () => void;
   onLoginSuccess: () => void;
 };
 
-export function useBiliQrLogin({ onClose, onLoginSuccess }: UseBiliQrLoginOptions) {
+export function useBiliQrLogin({
+  enabled,
+  onClose,
+  onLoginSuccess,
+}: UseBiliQrLoginOptions) {
   const [qrUrl, setQrUrl] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState<string>(QR_STATUS_TEXT.idle);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCloseRef = useRef(onClose);
   const onLoginSuccessRef = useRef(onLoginSuccess);
@@ -27,51 +51,78 @@ export function useBiliQrLogin({ onClose, onLoginSuccess }: UseBiliQrLoginOption
     }
   }, []);
 
-  const pollStatus = useCallback(async (key: string) => {
-    const result = await window.biliApi.pollQRCodeStatus(key);
-    console.log(key);
-
-    switch (parseInt(result)) {
-      case 86101:
-        setStatus('等待扫码...');
+  const handlePollCode = useCallback((code: number) => {
+    switch (code) {
+      case QR_LOGIN_CODE.WAITING:
+        setStatus(QR_STATUS_TEXT.waiting);
         break;
-      case 86090:
-        setStatus('扫码成功，请确认登录');
+      case QR_LOGIN_CODE.CONFIRMED:
+        setStatus(QR_STATUS_TEXT.confirmed);
         break;
-      case 0:
-        setStatus('登录成功');
+      case QR_LOGIN_CODE.SUCCESS:
+        setStatus(QR_STATUS_TEXT.success);
+        clearPolling();
         onLoginSuccessRef.current();
         onCloseRef.current();
+        break;
+      case QR_LOGIN_CODE.EXPIRED:
+        setStatus(QR_STATUS_TEXT.expired);
         clearPolling();
         break;
       default:
-        setStatus('二维码失效，请刷新');
-        console.log('key = ', key);
-        console.log(result);
+        setStatus(QR_STATUS_TEXT.error);
         clearPolling();
     }
   }, [clearPolling]);
 
+  const pollStatus = useCallback(async (key: string) => {
+    try {
+      const code = await window.biliApi.pollQRCodeStatus(key);
+      handlePollCode(code);
+    } catch (error) {
+      console.error('[useBiliQrLogin] poll failed:', error);
+      setStatus(QR_STATUS_TEXT.error);
+      clearPolling();
+    }
+  }, [clearPolling, handlePollCode]);
+
   const refreshQrCode = useCallback(async () => {
-    const data = await window.biliApi.getQr();
-    console.log('二维码数据', data, typeof data);
-
-    setQrUrl(data.url);
-    setStatus('未登录');
     clearPolling();
+    setQrUrl('');
+    setStatus(QR_STATUS_TEXT.loading);
 
-    timerRef.current = setInterval(() => {
-      void pollStatus(data.qrcode_key);
-    }, 2000);
+    try {
+      const data = await window.biliApi.getQr();
+
+      if (!data?.url || !data.qrcode_key) {
+        throw new Error('Invalid QR code response');
+      }
+
+      setQrUrl(data.url);
+      setStatus(QR_STATUS_TEXT.waiting);
+      timerRef.current = setInterval(() => {
+        void pollStatus(data.qrcode_key);
+      }, QR_POLL_INTERVAL_MS);
+    } catch (error) {
+      console.error('[useBiliQrLogin] refresh failed:', error);
+      setStatus(QR_STATUS_TEXT.error);
+    }
   }, [clearPolling, pollStatus]);
 
   useEffect(() => {
+    if (!enabled) {
+      clearPolling();
+      setQrUrl('');
+      setStatus(QR_STATUS_TEXT.idle);
+      return;
+    }
+
     void refreshQrCode();
 
     return () => {
       clearPolling();
     };
-  }, [clearPolling, refreshQrCode]);
+  }, [clearPolling, enabled, refreshQrCode]);
 
   return {
     qrUrl,

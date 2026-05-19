@@ -7,10 +7,10 @@ type EventPayloadMapping = {
     urlPage: url,
     filePath: filePathExist,
     getQr: QRInfo,
-    poll_qrcode_status: qrcode_key,
+    poll_qrcode_status: qrPollCode,
     sendSuccessInfo: downloadSuccess,
     check_login: boolean,
-    getUserInfo: UserInfo,
+    getUserInfo: UserInfo | null,
     logOut: isLogout,
     setSettings: Settings,
     loadSettings: Settings,
@@ -28,6 +28,7 @@ type url = string;
 type filePathExist = string;
 type cid = number;
 type qrcode_key = string;
+type qrPollCode = number;
 type header = {
     UserAgent: string,
     Referer: string,
@@ -63,21 +64,21 @@ interface Window{
     electron: {
         sendFrameAction: (payload: FrameWindowAction) => void;
         sendLinkAndDownloadMp4: (payload: dashUrl) => Promise<dashUrl>;
-        startDownload: (args: { video_url: string; audio_url: string; filePath: string }) => Promise<any>;
+        startDownload: (args: { video_url: string; audio_url: string; filePath: string }) => Promise<unknown>;
         onDownloadProgress: (callback: (progress: number) => void) => void;
         setVideoFolder: () => Promise<string>;
-        openPage: (payload: urlPage)  => void;
-        checkFileExist: (payload: filePathExist) => filePath;
-        on: (channel: string, callback: (...args: any[]) => void) => void;
+        openPage: (payload: url)  => void;
+        checkFileExist: (payload: filePathExist) => Promise<string>;
+        on: (channel: string, callback: (payload: string) => void) => void;
         sendSuccessInfo: (payload: downloadSuccess) => void;
         setSettings: (payload: Settings) => void;
         loadSettings: () => Promise<Settings>;
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;
-        pollQRCodeStatus: (payload: qrcode_key) => Promise<qrcode_key>;
+        pollQRCodeStatus: (payload: qrcode_key) => Promise<qrPollCode>;
         checkLogin: () => Promise<boolean>;
-        getUserInfo: () => Promise<UserInfo>;
+        getUserInfo: () => Promise<UserInfo | null>;
         logOut: () => Promise<isLogout>;
     }
 }

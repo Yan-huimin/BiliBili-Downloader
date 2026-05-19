@@ -1,6 +1,6 @@
 import { BrowserWindow, globalShortcut } from "electron";
 import { getPreloadPath, getUiPath } from "./pathResolver.js";
-import { isDev, loadCookies } from "./utils.js";
+import { isDev } from "./utils.js";
 
 export function createMainWindow() {
     const mainWindow = new BrowserWindow({
@@ -34,8 +34,6 @@ export function createMainWindow() {
     }
 
     // mainWindow.webContents.openDevTools();
-
-    loadCookies();
 
     globalShortcut.register('F12', () => {});
     globalShortcut.register('Control+Shift+I', () => {});
