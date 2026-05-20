@@ -17,22 +17,41 @@ import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResol
 import type { CookieJar } from "tough-cookie";
 import { spawn } from "child_process";
 
+/**
+ * 判断当前是否处于开发模式。
+ * @returns NODE_ENV 为 'development' 时返回 true。
+ */
 export function isDev(): boolean {
  return process.env.NODE_ENV === 'development';
 }
 
-// 从链接中提取出视频的BV号
+/**
+ * 从视频链接中提取 BV 号。
+ * Bilibili BV 号以 "BV" 开头，后跟字母数字组合。
+ * @param url - 包含 BV 号的完整 URL 或字符串。
+ * @returns 提取到的 BV 号字符串（如 "BV1xx411c7mD"），未找到时返回 null。
+ */
 export function extractBV(url: url): url | null {
   const match = url.match(/BV([a-zA-Z0-9]+)/);
   return match ? `BV${match[1]}` : null;
 }
 
+/**
+ * 从本地文件读取并解析用户设置。
+ * @returns 反序列化后的 Settings 对象。
+ */
 function getSettings() {
     ensureExistSettingsFile();
     const data = fs.readFileSync(getSettingsPath(), 'utf-8');
     return JSON.parse(data) as Settings;
 }
 
+/**
+ * 根据 BV 号查询视频的分 P 列表，获取第一个分 P 的 cid。
+ * cid 是 Bilibili 视频播放页面的唯一标识符，用于获取播放流地址。
+ * @param bid - 视频的 BV 号。
+ * @returns 第一个分 P 的 cid 数值，请求失败或无数据时返回 null。
+ */
 export async function getCid(bid: bvid): Promise<cid | null> {
     try {
         const url = `https://api.bilibili.com/x/player/pagelist?bvid=${bid}`;
@@ -70,6 +89,14 @@ type BiliDash = {
   audio?: BiliDashMedia[];
 };
 
+/**
+ * 根据 BV 号和 cid 获取视频的 DASH 播放流地址。
+ * 根据设置中选择的画质，向 Bilibili API 请求对应清晰度的视频流和音频流地址。
+ * 低画质（qn <= 32）时使用 durl 模式（音视频合一的 MP4），高画质时使用 DASH 分离流。
+ * @param bvid - 视频的 BV 号。
+ * @param cid - 视频分 P 的 cid。
+ * @returns 包含 video_url 和 audio_url 的对象，低画质时两者相同，失败时两个字段均为空字符串。
+ */
 export async function getPlayUrl(bvid: bvid, cid: cid): Promise<dashUrl> {
   try {
     const { videoQuality, downloadPath } = getSettings();
@@ -127,6 +154,10 @@ export async function getPlayUrl(bvid: bvid, cid: cid): Promise<dashUrl> {
   }
 }
 
+/**
+ * 打开系统文件夹选择对话框，让用户选择视频下载保存目录。
+ * @returns 用户选择的文件夹路径字符串，用户取消选择时返回 null。
+ */
 export async function setSaveFolder(){
 
   const result = await dialog.showOpenDialog({
@@ -253,8 +284,15 @@ const THREAD_COUNT = 4;
 //   });
 // }
 
-// 通用下载函数，支持 video/audio
-// 修改后的 downloadFile
+/**
+ * 通用文件下载函数，支持单线程和多线程分片下载。
+ * 小文件（≤5MB）直接单线程下载；大文件优先尝试多线程 Range 分片下载，
+ * 若服务器不支持 Range 则降级为单线程。
+ * 多线程下载时会将文件分片写入临时目录，然后合并为完整文件。
+ * @param url - 要下载文件的 URL。
+ * @param targetPath - 下载完成后保存文件的完整路径。
+ * @param win - 当前主窗口 BrowserWindow 实例，用于向渲染进程推送下载进度。
+ */
 async function downloadFile(url: string, targetPath: string, win: BrowserWindow) {
   const head = await client.head(url, {
     headers: {
@@ -366,7 +404,14 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
 // 666
 const ffmpegPath: string = getFfmpegPath();
 
-// 注册下载逻辑
+/**
+ * 注册视频下载的 IPC handler（start_download 通道）。
+ * 处理视频/音频的下载、合并流程：
+ * - 若视频和音频 URL 相同（低画质），直接下载单个文件。
+ * - 若不同（高画质 DASH），分别下载视频流和音频流后调用 ffmpeg 合并。
+ * - 下载完成后通过 webContents.send 通知渲染进程。
+ * @param win - 当前主窗口 BrowserWindow 实例。
+ */
 export function registerVideoDownloader(win: BrowserWindow) {
   ipcMain.handle("start_download", async (_e, { video_url, audio_url, filePath }) => {
     try {
@@ -491,14 +536,24 @@ app.on('before-quit', () => {
 });
 
 
+/**
+ * 确保 Bilibili Cookie 持久化文件存在，不存在则用当前 jar 的状态初始化。
+ */
 export async function ensureExistCookiesFile() {
   await ensureCookiesFile(jar);
 }
 
+/**
+ * 将当前内存 CookieJar 的状态持久化到本地文件。
+ */
 export async function saveCookies() {
   await saveStoredCookies(jar);
 }
 
+/**
+ * 从本地文件加载 Cookie 并反序列化为新的 CookieJar。
+ * @returns 包含已存储 Cookie 的 CookieJar 实例，失败时返回 null。
+ */
 export async function loadCookies(): Promise<CookieJar | null> {
   return loadStoredCookies();
 }
@@ -512,6 +567,12 @@ export async function loadCookies(): Promise<CookieJar | null> {
 //   });
 // }
 
+/**
+ * 为 Electron session 注册 Bilibili 图片域名的请求头拦截。
+ * 自动为 i0.hdslb.com 和 i1.hdslb.com 的请求添加 Referer 和 User-Agent 头，
+ * 以绕过 Bilibili 的防盗链限制。
+ * @param targetSession - 要注册拦截的 Electron Session，默认为 defaultSession。
+ */
 export function registerBiliImageHeaders(targetSession?: Electron.Session) {
   const s = targetSession || session.defaultSession;
 
@@ -534,29 +595,49 @@ export function registerBiliImageHeaders(targetSession?: Electron.Session) {
 // 退出登录清空cookie
 // ---------------- 清空操作 ----------------
 // 清空 Cookie 文件内容（覆盖为空）
+/**
+ * 清空本地 Cookie 持久化文件中的内容（写入空 Cookie 数组）。
+ */
 export async function clearCookiesFile() {
   await clearStoredCookiesFile(jar);
 }
 
 // 清空 CookieJar（内存）
+/**
+ * 清空内存 CookieJar 中的所有 Cookie。
+ */
 export function clearJar() {
   clearCookieJar(jar);
 }
 
 // 清空 Electron session cookies
+/**
+ * 清除 Electron 默认会话中所有存储的 Cookie。
+ */
 export async function clearElectronCookies() {
   await clearStoredElectronCookies();
 }
 
 // ---------------- 统一退出登录 ----------------
+/**
+ * 统一退出 Bilibili 登录：清除内存、文件和 Electron 会话中的所有 Cookie。
+ */
 export async function logout() {
   await clearBiliLoginCookies(jar);
 }
 
+/**
+ * 检查本地设置文件是否存在。
+ * @returns 文件存在返回 true，否则返回 false。
+ */
 function isExistSettingsFile(): boolean{
     return fs.existsSync(getSettingsPath());
 }
 
+/**
+ * 确保本地设置文件存在。
+ * 若文件不存在，则用默认设置（画质 64、默认视频路径、关闭通知和特效）创建一个新文件。
+ */
 export async function ensureExistSettingsFile() {
     if(!isExistSettingsFile()){
         const defaultSettings: Settings = {
@@ -569,6 +650,10 @@ export async function ensureExistSettingsFile() {
     }
 }
 
+/**
+ * 获取当前 CookieJar 中适用于 Bilibili API 的 Cookie 字符串。
+ * @returns Cookie 键值对字符串，如 "SESSDATA=xxx; bili_jct=yyy"。
+ */
 export async function getBiliCookieString() {
   return readBiliCookieString(jar);
 }

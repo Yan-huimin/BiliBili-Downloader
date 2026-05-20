@@ -3,10 +3,19 @@ import { app } from 'electron';
 import { isDev } from './utils.js';
 import ffmpegPath from 'ffmpeg-static';
 
+/**
+ * 获取 React 前端入口 HTML 文件的绝对路径。
+ * @returns 路径字符串，指向 dist-react/index.html。
+ */
 export function getUiPath(){
     return path.join(app.getAppPath(), "/dist-react/index.html");
 }
 
+/**
+ * 获取 Electron preload 脚本的绝对路径。
+ * 开发模式下从项目根目录获取，生产模式下从上级目录获取。
+ * @returns preload.cjs 文件的绝对路径。
+ */
 export function getPreloadPath(){
     return path.join(
         app.getAppPath(),
@@ -15,6 +24,11 @@ export function getPreloadPath(){
     );
 }
 
+/**
+ * 获取 ffmpeg 可执行文件的路径。
+ * 开发模式下返回 npm 包中的 ffmpeg-static 路径，生产模式下返回打包后的 ffmpeg.exe 路径。
+ * @returns ffmpeg 可执行文件的绝对路径。
+ */
 export function getFfmpegPath(){
     return isDev() ? (ffmpegPath as unknown as string) : path.join(
       process.resourcesPath,
@@ -25,15 +39,27 @@ export function getFfmpegPath(){
     );
 }
 
+/**
+ * 获取操作系统默认的视频文件夹路径。
+ * @returns 系统视频目录的绝对路径。
+ */
 export function getDefaultVideoPath() {
     const videoPath = app.getPath('videos');
     return videoPath;
 }
 
+/**
+ * 获取 Bilibili Cookie 持久化文件的路径。
+ * @returns 路径字符串，位于 Electron userData 目录下的 biliCookies.json。
+ */
 export function getCookiesPath() {
     return path.join(app.getPath('userData'), 'biliCookies.json');
 }
 
+/**
+ * 获取应用设置持久化文件的路径。
+ * @returns 路径字符串，位于 Electron userData 目录下的 Settings.json。
+ */
 export function getSettingsPath() {
     return path.join(app.getPath('userData'), 'Settings.json');
 }

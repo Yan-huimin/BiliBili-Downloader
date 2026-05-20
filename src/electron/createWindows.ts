@@ -2,6 +2,12 @@ import { BrowserWindow, globalShortcut } from "electron";
 import { getPreloadPath, getUiPath } from "./pathResolver.js";
 import { isDev } from "./utils.js";
 
+/**
+ * 创建 Electron 主窗口。
+ * 配置无边框、固定尺寸的 BrowserWindow，并根据环境加载开发服务器或生产构建的 HTML。
+ * 在开发模式下会打开 DevTools，生产模式下则禁止打开 DevTools。
+ * @returns 创建并配置完成的 BrowserWindow 实例。
+ */
 export function createMainWindow() {
     const mainWindow = new BrowserWindow({
         webPreferences: {
