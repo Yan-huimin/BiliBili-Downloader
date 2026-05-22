@@ -14,10 +14,8 @@ type EventPayloadMapping = {
     logOut: isLogout,
     setSettings: Settings,
     loadSettings: Settings,
+    openDevTools: boolean,
 }
-
-
-type __DEVTOOLS_OPENED__ = boolean;
 
 /* ******************************** */
 
@@ -73,6 +71,7 @@ interface Window{
         sendSuccessInfo: (payload: downloadSuccess) => void;
         setSettings: (payload: Settings) => void;
         loadSettings: () => Promise<Settings>;
+        openDevTools: () => Promise<boolean>;
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;

@@ -106,4 +106,34 @@ export function setupIpcHandlers(win: BrowserWindow) {
     const data = fs.readFileSync(getSettingsPath(), "utf-8");
     return JSON.parse(data) as Settings;
   });
+
+  IpcMainHandle("openDevTools", async () => {
+    return openDeveloperTools(win);
+  });
+}
+
+/**
+ * 为指定窗口打开 Chrome Developer Tools。
+ * 内部会校验窗口是否已销毁，并捕获可能出现的异常。
+ * @param win - 当前主窗口 BrowserWindow 实例。
+ * @returns 成功打开返回 true，失败时返回 false。
+ */
+function openDeveloperTools(win: BrowserWindow): boolean {
+  try {
+    if (win.isDestroyed()) {
+      console.error("无法打开开发者工具：窗口已销毁");
+      return false;
+    }
+
+    if (win.webContents.isDestroyed()) {
+      console.error("无法打开开发者工具：webContents 已销毁");
+      return false;
+    }
+
+    win.webContents.openDevTools({ mode: "detach" });
+    return true;
+  } catch (error) {
+    console.error("打开开发者工具时发生异常:", error);
+    return false;
+  }
 }

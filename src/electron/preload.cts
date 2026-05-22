@@ -93,6 +93,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.send("setSettings", payload),
 
   loadSettings: () => ipcRenderer.invoke("loadSettings"),
+
+  openDevTools: () => ipcRenderer.invoke("openDevTools", true),
 });
 
 contextBridge.exposeInMainWorld("biliApi", {

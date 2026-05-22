@@ -1,5 +1,6 @@
 import { FaFolder, FaSignOutAlt } from 'react-icons/fa';
 import { IoCopy, IoDiamondOutline } from 'react-icons/io5';
+import { VscTools } from 'react-icons/vsc';
 import defaultImg from '../assets/defaultHead.jpeg';
 import { VIDEO_QUALITY_OPTIONS } from '../constants/videoQualityOptions';
 import '../css/Modal.css';
@@ -105,6 +106,18 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
               />
               <span>彩带特效</span>
             </label>
+          </section>
+
+          <section className="settings-section">
+            <h2>开发者工具</h2>
+            <button
+              className="settings-action-btn"
+              onClick={() => window.electron.openDevTools()}
+              type="button"
+            >
+              <VscTools />
+              <span>打开开发者工具</span>
+            </button>
           </section>
 
           <section className="settings-section">

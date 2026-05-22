@@ -25,8 +25,8 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
     const settings = await window.electron.loadSettings();
     setSelectedQuality(settings.videoQuality);
     setDefaultDownloadPath(settings.downloadPath);
-    setSystemNotification(settings.systemNotification);
-    setFireworkParticles(settings.fireworkParticles);
+    setSystemNotification(settings.systemNotification ?? false);
+    setFireworkParticles(settings.fireworkParticles ?? false);
   }, []);
 
   const fetchUserInfo = useCallback(async () => {
