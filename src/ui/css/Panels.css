@@ -1,0 +1,297 @@
+/* ===== 合集 & 下载队列共用样式 ===== */
+
+.collection-panel,
+.queue-panel {
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  padding: 14px;
+  width: 360px;
+}
+
+.panel-header {
+  align-items: center;
+  color: var(--text-strong);
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 15px;
+  font-weight: 750;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.panel-header__count {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.panel-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 自定义滚动条 */
+.panel-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.panel-scroll::-webkit-scrollbar-thumb {
+  background: rgba(122, 136, 158, 0.32);
+  border-radius: 999px;
+}
+
+.panel-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ===== 合集列表项 ===== */
+.collection-item {
+  align-items: center;
+  background: color-mix(in srgb, var(--input-bg) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 42px;
+  padding: 7px 8px;
+  transition: background 0.18s ease;
+}
+
+.collection-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.collection-item__index {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: right;
+}
+
+.collection-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.collection-item__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.collection-item__title {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-item__meta {
+  color: var(--muted);
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+}
+
+.collection-item__meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 下载队列列表项 ===== */
+.queue-item {
+  align-items: center;
+  background: color-mix(in srgb, var(--input-bg) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 8px;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px;
+}
+
+.queue-item__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.queue-item__header {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.queue-item__title {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-item__status {
+  border-radius: 4px;
+  color: var(--accent);
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.queue-item__status--waiting {
+  color: var(--muted);
+}
+
+.queue-item__status--completed {
+  color: var(--accent-green);
+}
+
+.queue-item__status--error,
+.queue-item__status--cancelled {
+  color: var(--accent-strong);
+}
+
+.queue-item__status--merging {
+  color: #f5b83d;
+}
+
+.queue-item__progress-row {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.queue-item__progress-track {
+  background: rgba(122, 136, 158, 0.22);
+  border-radius: 999px;
+  flex: 1;
+  height: 5px;
+  overflow: hidden;
+}
+
+.queue-item__progress-bar {
+  background: linear-gradient(90deg, var(--accent), var(--accent-green));
+  border-radius: inherit;
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.queue-item__progress-text {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: right;
+}
+
+.queue-item__cancel {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 14px;
+  height: 28px;
+  justify-content: center;
+  transition: background 0.18s ease, color 0.18s ease;
+  width: 28px;
+}
+
+.queue-item__cancel:hover {
+  background: rgba(255, 95, 87, 0.14);
+  color: var(--accent-strong);
+}
+
+.queue-item__retry {
+  align-items: center;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 6px;
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 650;
+  height: 28px;
+  justify-content: center;
+  padding: 0 8px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.queue-item__retry:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--text-strong);
+}
+
+.queue-item--done {
+  border-color: color-mix(in srgb, var(--accent-green) 40%, transparent);
+}
+
+.queue-item--done .queue-item__title {
+  color: var(--accent-green);
+}
+
+.queue-item--fail {
+  border-color: color-mix(in srgb, var(--accent-strong) 40%, transparent);
+}
+
+.queue-item--fail .queue-item__title {
+  color: var(--accent-strong);
+}
+
+.panel-empty {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: center;
+}
+
+.modal-button--muted {
+  background: var(--button-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.modal-button--muted:hover {
+  background: var(--button-hover);
+  box-shadow: 0 10px 22px rgba(40, 55, 78, 0.12);
+}
+
+.modal-button--success {
+  background: linear-gradient(100deg, var(--accent-green), color-mix(in srgb, var(--accent-green) 60%, var(--accent)));
+  color: white;
+}
+
+.modal-button--success:hover {
+  filter: brightness(1.04) saturate(1.06);
+  transform: translateY(-1px);
+}

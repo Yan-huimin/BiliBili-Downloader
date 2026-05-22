@@ -15,6 +15,14 @@ type EventPayloadMapping = {
     setSettings: Settings,
     loadSettings: Settings,
     openDevTools: boolean,
+    fetchCollection: string,
+    enqueueBulk: DownloadTask[],
+    enqueueSingle: DownloadTask,
+    cancelDownload: number,
+    clearQueue: boolean,
+    getQueue: DownloadTask[],
+    dequeue: DownloadTask[],
+    removeTask: number,
 }
 
 /* ******************************** */
@@ -58,6 +66,34 @@ type dashUrl = {
 }
 type isLogout = boolean;
 
+/* 合集 */
+type CollectionVideo = {
+  bvid: string;
+  title: string;
+  duration: number;
+  author: string;
+};
+
+type CollectionInfo = {
+  title: string;
+  videos: CollectionVideo[];
+};
+
+/* 下载队列 */
+type DownloadTaskStatus = 'waiting' | 'downloading' | 'completed' | 'cancelled' | 'error';
+
+type DownloadTask = {
+  id: number;
+  bvid: string;
+  title: string;
+  duration: number;
+  progress: number;
+  status: DownloadTaskStatus;
+  errorMessage?: string;
+  filePath?: string;
+  retryCount?: number;
+};
+
 interface Window{
     electron: {
         sendFrameAction: (payload: FrameWindowAction) => void;
@@ -72,6 +108,14 @@ interface Window{
         setSettings: (payload: Settings) => void;
         loadSettings: () => Promise<Settings>;
         openDevTools: () => Promise<boolean>;
+        fetchCollection: (bvid: string) => Promise<CollectionInfo | null>;
+        enqueueBulk: (tasks: DownloadTask[]) => void;
+        enqueueSingle: (task: DownloadTask) => void;
+        cancelDownload: (taskId: number) => void;
+        clearQueue: () => void;
+        getQueue: () => Promise<DownloadTask[]>;
+        onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => void;
+        removeTask: (taskId: number) => void;
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;

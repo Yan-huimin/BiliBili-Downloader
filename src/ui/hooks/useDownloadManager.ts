@@ -28,6 +28,7 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
   const [savePath, setSavePath] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [currentDownloadTitle, setCurrentDownloadTitle] = useState('');
   const [loginStatus, setLoginStatus] = useState(false);
   const fireworkParticlesRef = useRef(false);
   const systemNotificationRef = useRef(false);
@@ -61,29 +62,6 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
     }
   }, [showAlertMessage]);
 
-  const startDownload = useCallback(async (link: dashUrl): Promise<boolean> => {
-    if (isDownloading) {
-      return false;
-    }
-
-    const fileExists = await window.electron.checkFileExist(savePath) === 'YES';
-
-    if (!link.video_url || !fileExists) {
-      showAlertMessage('下载失败,请检查文件路径或链接');
-      setDownloadProgress(0);
-      setIsDownloading(false);
-      return false;
-    }
-
-    window.electron.startDownload({
-      video_url: link.video_url,
-      audio_url: link.audio_url,
-      filePath: savePath,
-    });
-
-    return true;
-  }, [isDownloading, savePath, showAlertMessage]);
-
   const handleDownload = useCallback(async () => {
     if (!shareLink.trim()) {
       showAlertMessage('请输入分享链接');
@@ -95,31 +73,28 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
       return;
     }
 
+    const match = shareLink.match(/BV([a-zA-Z0-9]+)/);
+    const bvid = match ? `BV${match[1]}` : null;
+    if (!bvid) {
+      showAlertMessage('无法识别分享链接中的BV号');
+      return;
+    }
+
     setIsDownloading(true);
     setDownloadProgress(0);
 
-    try {
-      const result = await window.electron.sendLinkAndDownloadMp4({
-        video_url: shareLink,
-        audio_url: '',
-      });
+    window.electron.enqueueSingle({
+      id: 0,
+      bvid,
+      title: shareLink,
+      duration: 0,
+      progress: 0,
+      status: 'waiting',
+      filePath: savePath,
+    });
 
-      console.log(result);
-
-      if (result === null) {
-        showAlertMessage('下载失败...');
-        setIsDownloading(false);
-        setDownloadProgress(0);
-        return;
-      }
-
-      await startDownload(result);
-    } catch {
-      showAlertMessage('下载失败...');
-      setIsDownloading(false);
-      setDownloadProgress(0);
-    }
-  }, [savePath, shareLink, showAlertMessage, startDownload]);
+    showAlertMessage('已添加到下载队列');
+  }, [savePath, shareLink, showAlertMessage]);
 
   useEffect(() => {
     void loadSettings();
@@ -139,9 +114,24 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
       setDownloadProgress(percent * 100);
     });
 
+    window.electron.onQueueUpdated((queue: DownloadTask[]) => {
+      const downloadingTask = queue.find((t) => t.status === 'downloading');
+      if (downloadingTask) {
+        setDownloadProgress(downloadingTask.progress);
+        setCurrentDownloadTitle(downloadingTask.title);
+        setIsDownloading(true);
+      } else {
+        const hasPending = queue.some((t) => t.status === 'waiting');
+        setIsDownloading(hasPending);
+        if (!hasPending) {
+          setDownloadProgress(0);
+          setCurrentDownloadTitle('');
+        }
+      }
+    });
+
     window.electron.on('download-complete', (filePath: string) => {
       showAlertMessage('下载完成');
-      setIsDownloading(false);
       setDownloadProgress(0);
 
       if (systemNotificationRef.current) {
@@ -169,12 +159,12 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
     window.electron.on('download-error', (message: string) => {
       console.log(message);
       showAlertMessage(`下载失败:${message}`);
-      setIsDownloading(false);
       setDownloadProgress(0);
     });
   }, [showAlertMessage]);
 
   return {
+    currentDownloadTitle,
     downloadProgress,
     handleDownload,
     handleFolderSelect,

@@ -3,6 +3,7 @@ import { FaFolderOpen, FaGithub } from 'react-icons/fa';
 import { RiBilibiliFill } from 'react-icons/ri';
 
 type DownloadPanelProps = {
+  currentDownloadTitle: string;
   downloadProgress: number;
   isDownloading: boolean;
   onDownload: () => void;
@@ -14,6 +15,7 @@ type DownloadPanelProps = {
 };
 
 function DownloadPanel({
+  currentDownloadTitle,
   downloadProgress,
   isDownloading,
   onDownload,
@@ -101,7 +103,13 @@ function DownloadPanel({
           onClick={onDownload}
           type="button"
         >
-          {isDownloading ? (
+          {isDownloading && currentDownloadTitle ? (
+            <span className="download-title-scroll" aria-label="下载中">
+              <span className="download-title-scroll__text">
+                {currentDownloadTitle}
+              </span>
+            </span>
+          ) : isDownloading ? (
             <span className="loading-dots" aria-label="下载中">
               <span />
               <span />

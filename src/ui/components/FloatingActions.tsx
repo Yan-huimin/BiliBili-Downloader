@@ -2,15 +2,20 @@ import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BiCog } from 'react-icons/bi';
 import { FaClock } from 'react-icons/fa';
+import { LuListVideo } from 'react-icons/lu';
+import { MdOutlineVideoLibrary } from 'react-icons/md';
 import { RiBilibiliFill } from 'react-icons/ri';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import { TbMathFunction } from 'react-icons/tb';
 
 type FloatingActionsProps = {
+  hasShareLink: boolean;
   isDarkTheme: boolean;
   loginStatus: boolean;
   open: boolean;
+  onOpenCollection: () => void;
   onOpenLogin: () => void;
+  onOpenQueue: () => void;
   onOpenSettings: () => void;
   onShowCurrentTime: () => void;
   onClose: () => void;
@@ -20,11 +25,14 @@ type FloatingActionsProps = {
 };
 
 function FloatingActions({
+  hasShareLink,
   isDarkTheme,
   loginStatus,
   onAlreadyLoggedIn,
   onClose,
+  onOpenCollection,
   onOpenLogin,
+  onOpenQueue,
   onOpenSettings,
   onShowCurrentTime,
   onToggleOpen,
@@ -65,8 +73,29 @@ function FloatingActions({
             className="floating-actions__menu"
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            style={{ gridTemplateColumns: 'repeat(3, 38px)' }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
           >
+            {hasShareLink && (
+              <button
+                aria-label="获取合集"
+                className="floating-actions__item"
+                onClick={() => closeAfterAction(onOpenCollection)}
+                title="获取合集"
+                type="button"
+              >
+                <MdOutlineVideoLibrary />
+              </button>
+            )}
+            <button
+              aria-label="下载队列"
+              className="floating-actions__item"
+              onClick={() => closeAfterAction(onOpenQueue)}
+              title="下载队列"
+              type="button"
+            >
+              <LuListVideo />
+            </button>
             <button
               aria-label={isDarkTheme ? '切换到明亮主题' : '切换到暗黑主题'}
               className="floating-actions__item"

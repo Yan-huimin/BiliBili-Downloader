@@ -1,8 +1,28 @@
+import { useEffect, useRef } from 'react';
 import '../css/Header.css';
 
 const Header = ({ isActive }: { isActive: boolean }) => {
+  const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+
+    const preventDoubleClickMaximize = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return false;
+    };
+
+    el.addEventListener('dblclick', preventDoubleClickMaximize, { capture: true });
+    return () => {
+      el.removeEventListener('dblclick', preventDoubleClickMaximize, { capture: true });
+    };
+  }, []);
+
   return (
-    <header className="app-titlebar" data-testid="head">
+    <header className="app-titlebar" data-testid="head" ref={headerRef}>
       <div className="traffic-lights" aria-label="窗口控制">
         <button
           aria-label="close"
@@ -30,7 +50,6 @@ const Header = ({ isActive }: { isActive: boolean }) => {
           id="breathlight"
           style={{ visibility: isActive ? 'visible' : 'hidden' }}
         />
-        {/* <span className="titlebar-status__text">{isActive ? '已登录' : '未登录'}</span> */}
       </div>
     </header>
   );

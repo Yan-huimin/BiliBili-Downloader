@@ -17,6 +17,9 @@ import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResol
 import type { CookieJar } from "tough-cookie";
 import { spawn } from "child_process";
 
+const ffmpegPath = getFfmpegPath();
+const THREAD_COUNT = 4;
+
 /**
  * 判断当前是否处于开发模式。
  * @returns NODE_ENV 为 'development' 时返回 true。
@@ -172,138 +175,32 @@ export async function setSaveFolder(){
   return result.filePaths[0];
 }
 
-const THREAD_COUNT = 4;
 
-// export function registerVideoDownloader(win: BrowserWindow) {
-//   ipcMain.handle('start_download', async (_e, { video_url, audio_url, filePath }) => {
-//     try {
-//         const head = await client.head(video_url, {
-//         headers: {
-//           'User-Agent': headers['User-Agent'],
-//           'Referer': headers['Referer'],
-//           'Origin': headers['Origin'],
-//         }
-//       });
-
-//       const totalSize = parseInt(head.headers['content-length'] || '0', 10);
-//       if (!head.headers['accept-ranges']?.includes('bytes')) {
-//         throw new Error('server does not support Range multi-threaded download');
-//       }
-
-//       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bili-download-'));
-//       const partSize = Math.ceil(totalSize / THREAD_COUNT);
-//       let downloaded = 0;
-
-//       const downloadPart = async (start: number, end: number, index: number) => {
-//         const response = await client.get(video_url, {
-//           headers: {
-//             'Range': `bytes=${start}-${end}`,
-//             'User-Agent': headers['User-Agent'],
-//             'Referer': headers['Referer'],
-//             'Origin': headers['Origin'],
-//           },
-//           responseType: 'stream',
-//         });
-
-//         const partPath = path.join(tempDir, `part_${index}`);
-//         const writer = fs.createWriteStream(partPath);
-//         activeStreams.push(writer); // 加入活跃写入列表
-
-//         return new Promise<void>((resolve, reject) => {
-//           response.data.on('data', (chunk: Buffer) => {
-//             downloaded += chunk.length;
-//             const progress = totalSize > 0 ? downloaded / totalSize : 0;
-//             win.webContents.send('download-progress', progress);
-//           });
-
-//           response.data.on('error', (err: Error) => {
-//             win.webContents.send('download-error', '下载失败: ' + err.message);
-//             reject(err);
-//           });
-
-//           writer.on('error', (err: Error) => {
-//             win.webContents.send('download-error', '写入文件失败: ' + err.message);
-//             reject(err);
-//           });
-
-//           writer.on('finish', () => {
-//             writer.close((err) => {
-//               if (err) {
-//                 reject(err);
-//               } else {
-//                 resolve();
-//               }
-//             });
-//           });
-
-//           response.data.pipe(writer);
-//         });
-//       };
-
-//       const tasks: Promise<void>[] = [];
-//       for (let i = 0; i < THREAD_COUNT; i++) {
-//         const start = i * partSize;
-//         const end = Math.min((i + 1) * partSize - 1, totalSize - 1);
-//         tasks.push(downloadPart(start, end, i));
-//       }
-
-//       await Promise.all(tasks);
-
-//       const finalPath = path.join(filePath, `video_${Date.now()}.mp4`);
-//       const writeStream = fs.createWriteStream(finalPath);
-//       currentWriteStream = writeStream;
-
-//       for (let i = 0; i < THREAD_COUNT; i++) {
-//         const partPath = path.join(tempDir, `part_${i}`);
-//         const data = fs.readFileSync(partPath);
-//         writeStream.write(data);
-//         fs.unlinkSync(partPath);
-//       }
-
-//       writeStream.end();
-
-//       writeStream.on('finish', () => {
-//         writeStream.close(() => {
-//           fs.rmdirSync(tempDir);
-//           win.webContents.send('download-complete', finalPath);
-//         });
-//       });
-
-//       writeStream.on('error', (err) => {
-//         fs.rmdirSync(tempDir, { recursive: true });
-//         win.webContents.send('download-error', '合并文件失败: ' + err.message);
-//       });
-
-//     } catch (err) {
-//       win.webContents.send('download-error', '下载失败: ' + (err as Error).message);
-//     } finally {
-//       // 清空流列表
-//       activeStreams = [];
-//       currentWriteStream = null;
-//     }
-//   });
-// }
 
 /**
  * 通用文件下载函数，支持单线程和多线程分片下载。
- * 小文件（≤5MB）直接单线程下载；大文件优先尝试多线程 Range 分片下载，
- * 若服务器不支持 Range 则降级为单线程。
- * 多线程下载时会将文件分片写入临时目录，然后合并为完整文件。
  * @param url - 要下载文件的 URL。
  * @param targetPath - 下载完成后保存文件的完整路径。
- * @param win - 当前主窗口 BrowserWindow 实例，用于向渲染进程推送下载进度。
+ * @param onProgress - 可选，下载进度回调 (0-1)。
+ * @param signal - 可选，AbortSignal 用于取消下载。
  */
-async function downloadFile(url: string, targetPath: string, win: BrowserWindow) {
+export async function downloadFile(
+  url: string,
+  targetPath: string,
+  onProgress?: (progress: number) => void,
+  signal?: AbortSignal,
+) {
   const head = await client.head(url, {
     headers: {
       'User-Agent': headers['User-Agent'],
       'Referer': headers['Referer'],
-    }
+    },
+    signal,
   });
 
   const totalSize = parseInt(head.headers['content-length'] || '0', 10);
 
-  // 🔥 如果文件小于等于 5MB，直接单线程下载（适合音频）
+  // 如果文件小于等于 5MB，直接单线程下载（适合音频）
   if (totalSize <= 5 * 1024 * 1024) {
     const resp = await client.get(url, {
       headers: {
@@ -311,12 +208,13 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
         'Referer': headers['Referer'],
       },
       responseType: 'arraybuffer',
+      signal,
     });
     fs.writeFileSync(targetPath, resp.data);
     return;
   }
 
-  // 🔥 否则走原来的多线程下载逻辑
+  // 否则走原来的多线程下载逻辑
     try {
       if (!head.headers['accept-ranges']?.includes('bytes')) {
         throw new Error('server does not support Range');
@@ -329,6 +227,7 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
           'Referer': headers['Referer'],
         },
         responseType: 'arraybuffer',
+        signal,
       });
       fs.writeFileSync(targetPath, resp.data);
       return;
@@ -336,7 +235,7 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
 
   const partSize = Math.ceil(totalSize / THREAD_COUNT);
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bili-download-'));
-  tempDirs.push(tempDir); // ✅ 记录临时目录
+  tempDirs.push(tempDir); // 记录临时目录
   let downloaded = 0;
 
   const downloadPart = async (start: number, end: number, index: number) => {
@@ -347,21 +246,19 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
         'Referer': headers['Referer'],
       },
       responseType: 'stream',
+      signal,
     });
 
     const partPath = path.join(tempDir, `part_${index}`);
     const writer = fs.createWriteStream(partPath);
-    activeStreams.push(writer); // ✅ 记录流
+    activeStreams.push(writer); // 记录流
     pendingFiles.push(partPath);
 
     return new Promise<void>((resolve, reject) => {
       response.data.on('data', (chunk: Buffer) => {
         downloaded += chunk.length;
         const progress = totalSize > 0 ? downloaded / totalSize : 0;
-
-        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
-          win.webContents.send('download-progress', progress);
-        }
+        onProgress?.(progress);
       });
 
       writer.on('error', reject);
@@ -401,15 +298,163 @@ async function downloadFile(url: string, targetPath: string, win: BrowserWindow)
 }
 
 
-// 666
-const ffmpegPath: string = getFfmpegPath();
+/**
+ * 确保输出路径具有 `.mp4` 文件扩展名。
+ *
+ * 如果传入路径没有扩展名，则自动追加 `.mp4`；
+ * 如果传入路径已有扩展名但不是 `.mp4`，则抛出错误，避免 ffmpeg 输出格式不明确。
+ *
+ * @param outputPath - 原始输出文件路径。
+ *
+ * @returns 处理后的 MP4 输出路径。
+ *
+ * @throws 当输出路径已有扩展名但不是 `.mp4` 时抛出错误。
+ */
+function ensureMp4Path(outputPath: string) {
+  const ext = path.extname(outputPath).toLowerCase();
+
+  if (!ext) {
+    return `${outputPath}.mp4`;
+  }
+
+  if (ext !== ".mp4") {
+    throw new Error(`输出文件必须是 .mp4 格式，当前为: ${ext}`);
+  }
+
+  return outputPath;
+}
+
+
+
+/**
+ * 使用 ffmpeg 将 B 站下载得到的 m4s 视频流和音频流合并为一个 MP4 文件。
+ *
+ * 该函数通过调用本地 ffmpeg 可执行文件完成音视频封装，
+ * 不进行重新编码，仅使用 `-c copy` 复制原始音视频流，因此速度较快且不会损失画质。
+ *
+ * @param videoPath - 视频 m4s 文件的完整路径。
+ * @param audioPath - 音频 m4s 文件的完整路径。
+ * @param outputPath - 合并完成后输出文件的完整路径，建议以 `.mp4` 结尾。
+ * @param signal - 可选，AbortSignal 用于取消 ffmpeg 合并任务。
+ *
+ * @returns 合并成功时返回 Promise<void>。
+ *
+ * @throws 当未找到 ffmpeg 可执行文件时抛出错误。
+ * @throws 当 ffmpeg 执行失败或被取消时抛出错误。
+ */
+export async function mergeWithFfmpeg(
+  videoPath: string,
+  audioPath: string,
+  outputPath: string,
+  signal?: AbortSignal,
+) {
+  return new Promise<void>((resolve, reject) => {
+    if (!ffmpegPath) {
+      return reject(new Error("未找到 ffmpeg 可执行文件"));
+    }
+
+    const finalOutputPath = ensureMp4Path(outputPath);
+
+    let stderr = "";
+    let aborted = false;
+    let settled = false;
+
+    const args = [
+      "-y",
+      "-nostdin",
+
+      "-i", videoPath,
+      "-i", audioPath,
+
+      "-map", "0:v:0",
+      "-map", "1:a:0",
+
+      "-c", "copy",
+      "-movflags", "+faststart",
+
+      "-f", "mp4",
+
+      finalOutputPath,
+    ];
+
+    const ff = spawn(ffmpegPath, args, {
+      shell: false,
+      windowsHide: true,
+    });
+
+    const cleanupOutput = () => {
+      try {
+        if (fs.existsSync(finalOutputPath)) {
+          fs.unlinkSync(finalOutputPath);
+        }
+      } catch {
+        // Windows 下 ffmpeg 进程未完全退出时可能还占用文件，忽略即可
+      }
+    };
+
+    const onAbort = () => {
+      aborted = true;
+      ff.kill("SIGKILL");
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        cleanupOutput();
+        return reject(new Error("ffmpeg 合并任务已取消"));
+      }
+
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+
+    ff.stderr.on("data", (data) => {
+      const text = data.toString();
+      stderr += text;
+      console.log("ffmpeg:", text);
+    });
+
+    ff.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+
+      signal?.removeEventListener("abort", onAbort);
+
+      if (aborted) {
+        cleanupOutput();
+        reject(new Error("ffmpeg 合并任务已取消"));
+      } else {
+        reject(err);
+      }
+    });
+
+    ff.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+
+      signal?.removeEventListener("abort", onAbort);
+
+      if (aborted) {
+        cleanupOutput();
+        reject(new Error("ffmpeg 合并任务已取消"));
+        return;
+      }
+
+      if (code === 0) {
+        resolve();
+      } else {
+        cleanupOutput();
+        reject(
+          new Error(
+            `ffmpeg 合并失败，退出码: ${code}\n\n${stderr}`
+          )
+        );
+      }
+    });
+  });
+}
 
 /**
  * 注册视频下载的 IPC handler（start_download 通道）。
- * 处理视频/音频的下载、合并流程：
- * - 若视频和音频 URL 相同（低画质），直接下载单个文件。
- * - 若不同（高画质 DASH），分别下载视频流和音频流后调用 ffmpeg 合并。
- * - 下载完成后通过 webContents.send 通知渲染进程。
+ * 现在通过下载队列统一管理，单个下载也会加入队列。
  * @param win - 当前主窗口 BrowserWindow 实例。
  */
 export function registerVideoDownloader(win: BrowserWindow) {
@@ -417,9 +462,16 @@ export function registerVideoDownloader(win: BrowserWindow) {
     try {
       const finalPath = path.join(filePath, `video_${Date.now()}.mp4`);
 
-      // 如果视频和音频 URL 相同，只下载一次
       if (video_url === audio_url) {
-        await downloadFile(video_url, finalPath, win);
+        await downloadFile(
+          video_url,
+          finalPath,
+          (progress) => {
+            if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+              win.webContents.send("download-progress", progress);
+            }
+          }
+        );
         win.webContents.send("download-complete", finalPath);
         return;
       }
@@ -427,9 +479,17 @@ export function registerVideoDownloader(win: BrowserWindow) {
       const videoPath = path.join(filePath, "video.m4s");
       const audioPath = path.join(filePath, "audio.m4s");
 
-      // 1. 下载视频和音频
-      await downloadFile(video_url, videoPath, win);
+      await downloadFile(
+        video_url,
+        videoPath,
+        (progress) => {
+          if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+            win.webContents.send("download-progress", progress);
+          }
+        }
+      );
       console.log("video downloaded");
+
       const audioResp = await client.get(audio_url, {
         headers: {
           'User-Agent': headers['User-Agent'],
@@ -440,35 +500,8 @@ export function registerVideoDownloader(win: BrowserWindow) {
       fs.writeFileSync(audioPath, audioResp.data);
       console.log("audio downloaded");
 
-      // 2. 调用 ffmpeg 合并
-      await new Promise<void>((resolve, reject) => {
-        if (!ffmpegPath) {
-          return reject(new Error("未找到 ffmpeg 可执行文件"));
-        }
+      await mergeWithFfmpeg(videoPath, audioPath, finalPath);
 
-        console.log(ffmpegPath);
-
-        const ff = spawn(ffmpegPath, [
-          "-i", videoPath,
-          "-i", audioPath,
-          "-c:v", "copy",
-          "-c:a", "aac",
-          finalPath
-        ], { shell: true });
-
-        ff.stderr.on("data", (data) => {
-          console.log("ffmpeg:", data.toString());
-        });
-
-        ff.on("error", reject);
-
-        ff.on("close", (code) => {
-          if (code === 0) resolve();
-          else reject(new Error(`ffmpeg exited with code ${code}`));
-        });
-      });
-
-      // 3. 删除临时文件
       fs.unlinkSync(videoPath);
       fs.unlinkSync(audioPath);
 
@@ -487,7 +520,7 @@ let currentWriteStream: fs.WriteStream | null = null;
 let tempDirs: string[] = [];
 let pendingFiles: string[] = [];
 
-// ✅ 应用退出时清理未关闭流 & 临时文件
+// 应用退出时清理未关闭流 & 临时文件
 app.on('before-quit', () => {
   // 1. 清理活跃写入流
   activeStreams.forEach((stream) => {

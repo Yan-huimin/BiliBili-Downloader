@@ -95,6 +95,31 @@ contextBridge.exposeInMainWorld("electron", {
   loadSettings: () => ipcRenderer.invoke("loadSettings"),
 
   openDevTools: () => ipcRenderer.invoke("openDevTools", true),
+
+  fetchCollection: (bvid: string) =>
+    ipcRenderer.invoke("fetchCollection", bvid),
+
+  enqueueBulk: (tasks: DownloadTask[]) =>
+    ipcRenderer.send("enqueueBulk", tasks),
+
+  enqueueSingle: (task: DownloadTask) =>
+    ipcRenderer.send("enqueueSingle", task),
+
+  cancelDownload: (taskId: number) =>
+    ipcRenderer.send("cancelDownload", taskId),
+
+  clearQueue: () =>
+    ipcRenderer.send("clearQueue"),
+
+  getQueue: () =>
+    ipcRenderer.invoke("getQueue"),
+
+  onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => {
+    ipcRenderer.on("queue-updated", (_e, queue) => callback(queue));
+  },
+
+  removeTask: (taskId: number) =>
+    ipcRenderer.send("removeTask", taskId),
 });
 
 contextBridge.exposeInMainWorld("biliApi", {

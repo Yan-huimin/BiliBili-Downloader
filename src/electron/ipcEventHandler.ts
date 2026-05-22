@@ -7,6 +7,15 @@ import {
   logoutBili,
   pollQrLoginStatus,
 } from "./bilibiliAuthService.js";
+import { fetchCollection } from "./collectionService.js";
+import {
+  cancelDownload,
+  clearQueue,
+  enqueueBulk,
+  enqueueOne,
+  getQueue,
+  removeTask,
+} from "./downloadQueue.js";
 import { IpcMainHandle, IpcMainOn } from "./ipcTools.js";
 import { getDefaultVideoPath, getSettingsPath } from "./pathResolver.js";
 import {
@@ -109,6 +118,34 @@ export function setupIpcHandlers(win: BrowserWindow) {
 
   IpcMainHandle("openDevTools", async () => {
     return openDeveloperTools(win);
+  });
+
+  ipcMain.handle("fetchCollection", async (_e, bvid: string) => {
+    return await fetchCollection(bvid);
+  });
+
+  IpcMainOn("enqueueBulk", (tasks: DownloadTask[]) => {
+    enqueueBulk(tasks, win);
+  });
+
+  IpcMainOn("enqueueSingle", (task: DownloadTask) => {
+    enqueueOne(task, win);
+  });
+
+  IpcMainOn("cancelDownload", (taskId: number) => {
+    cancelDownload(taskId, win);
+  });
+
+  IpcMainOn("clearQueue", () => {
+    clearQueue(win);
+  });
+
+  IpcMainOn("removeTask", (taskId: number) => {
+    removeTask(taskId, win);
+  });
+
+  IpcMainHandle("getQueue", async () => {
+    return getQueue();
   });
 }
 

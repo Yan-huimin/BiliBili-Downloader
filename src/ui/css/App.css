@@ -308,6 +308,28 @@
   opacity: 0.72;
 }
 
+.download-title-scroll {
+  display: block;
+  overflow: hidden;
+  width: 100%;
+}
+
+.download-title-scroll__text {
+  display: inline-block;
+  animation: title-marquee 6s linear infinite;
+  white-space: nowrap;
+  padding-left: 100%;
+}
+
+@keyframes title-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 .loading-dots {
   display: flex;
   gap: 7px;
