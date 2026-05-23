@@ -114,6 +114,91 @@
   white-space: nowrap;
 }
 
+/* ===== 统一视频列表项 ===== */
+.video-list-item {
+  align-items: center;
+  background: color-mix(in srgb, var(--input-bg) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 42px;
+  padding: 7px 8px;
+  transition: background 0.18s ease;
+}
+
+.video-list-item:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.video-list-item__index {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  text-align: right;
+}
+
+.video-list-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.video-list-item__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.video-list-item__title {
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-list-item__meta {
+  color: var(--muted);
+  display: flex;
+  font-size: 11px;
+  gap: 10px;
+}
+
+.video-list-item__meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.video-list-item__badge {
+  border-radius: 4px;
+  color: #fff;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+
+.video-list-item--disabled {
+  opacity: 0.45;
+}
+
+.video-list-item--disabled:hover {
+  background: color-mix(in srgb, var(--input-bg) 86%, transparent);
+}
+
+.video-list-item--disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
 /* ===== 下载队列列表项 ===== */
 .queue-item {
   align-items: center;

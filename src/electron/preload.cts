@@ -99,6 +99,9 @@ contextBridge.exposeInMainWorld("electron", {
   fetchCollection: (bvid: string) =>
     ipcRenderer.invoke("fetchCollection", bvid),
 
+  fetchBangumiEpisodes: (epId: number) =>
+    ipcRenderer.invoke("fetchBangumiEpisodes", epId),
+
   enqueueBulk: (tasks: DownloadTask[]) =>
     ipcRenderer.send("enqueueBulk", tasks),
 

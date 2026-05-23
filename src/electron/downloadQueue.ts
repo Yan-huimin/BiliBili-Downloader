@@ -101,7 +101,7 @@ async function processQueue(win: BrowserWindow) {
       stalled = true;
       currentAbortController?.abort();
     }
-  }, 5000);
+  }, 20000);
 
   try {
     const cid = await getCid(task.bvid);

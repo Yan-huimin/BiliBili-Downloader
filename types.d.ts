@@ -16,6 +16,7 @@ type EventPayloadMapping = {
     loadSettings: Settings,
     openDevTools: boolean,
     fetchCollection: string,
+    fetchBangumiEpisodes: number,
     enqueueBulk: DownloadTask[],
     enqueueSingle: DownloadTask,
     cancelDownload: number,
@@ -79,6 +80,22 @@ type CollectionInfo = {
   videos: CollectionVideo[];
 };
 
+/* 分享链接类型 */
+type ShareLinkType = 'bv' | 'ep' | 'both' | 'none';
+
+/* 统一视频列表项 */
+type VideoListItem = {
+  key: string;
+  title: string;
+  duration: number;
+  selectable: boolean;
+  subtitle?: string;
+  statusBadge?: {
+    text: string;
+    bgColor: string;
+  };
+};
+
 /* 下载队列 */
 type DownloadTaskStatus = 'waiting' | 'downloading' | 'completed' | 'cancelled' | 'error';
 
@@ -92,6 +109,28 @@ type DownloadTask = {
   errorMessage?: string;
   filePath?: string;
   retryCount?: number;
+};
+
+/* 番剧 */
+type BangumiEpisodeStatus = 'free' | 'limited_free' | 'vip' | 'preview' | 'restricted';
+
+type BangumiEpisode = {
+  ep_id: number;
+  bvid: string;
+  title: string;
+  show_title: string;
+  duration: number;
+  badge: string;
+  badge_type: number;
+  status: number;
+  episodeStatus: BangumiEpisodeStatus;
+};
+
+type BangumiInfo = {
+  season_id: number;
+  title: string;
+  isVip: boolean;
+  episodes: BangumiEpisode[];
 };
 
 interface Window{
@@ -109,6 +148,7 @@ interface Window{
         loadSettings: () => Promise<Settings>;
         openDevTools: () => Promise<boolean>;
         fetchCollection: (bvid: string) => Promise<CollectionInfo | null>;
+        fetchBangumiEpisodes: (epId: number) => Promise<BangumiInfo | null>;
         enqueueBulk: (tasks: DownloadTask[]) => void;
         enqueueSingle: (task: DownloadTask) => void;
         cancelDownload: (taskId: number) => void;

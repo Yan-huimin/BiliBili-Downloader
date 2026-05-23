@@ -31,10 +31,6 @@ export function createMainWindow() {
         mainWindow.loadFile(getUiPath());
     }
 
-    mainWindow.webContents.on('devtools-opened', () => {
-        mainWindow.webContents.closeDevTools();
-    });
-
     globalShortcut.register('F12', () => {});
     globalShortcut.register('Control+Shift+I', () => {});
 

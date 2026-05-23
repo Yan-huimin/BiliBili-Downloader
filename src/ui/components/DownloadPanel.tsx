@@ -1,3 +1,4 @@
+import React from 'react';
 import { AiOutlineBilibili } from 'react-icons/ai';
 import { FaFolderOpen, FaGithub } from 'react-icons/fa';
 import { RiBilibiliFill } from 'react-icons/ri';
@@ -154,4 +155,4 @@ function DownloadPanel({
   );
 }
 
-export default DownloadPanel;
+export default React.memo(DownloadPanel);

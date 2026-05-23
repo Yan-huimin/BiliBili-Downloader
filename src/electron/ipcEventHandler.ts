@@ -7,6 +7,7 @@ import {
   logoutBili,
   pollQrLoginStatus,
 } from "./bilibiliAuthService.js";
+import { fetchBangumiEpisodes } from "./bangumiService.js";
 import { fetchCollection } from "./collectionService.js";
 import {
   cancelDownload,
@@ -122,6 +123,10 @@ export function setupIpcHandlers(win: BrowserWindow) {
 
   ipcMain.handle("fetchCollection", async (_e, bvid: string) => {
     return await fetchCollection(bvid);
+  });
+
+  ipcMain.handle("fetchBangumiEpisodes", async (_e, epId: number) => {
+    return await fetchBangumiEpisodes(epId);
   });
 
   IpcMainOn("enqueueBulk", (tasks: DownloadTask[]) => {

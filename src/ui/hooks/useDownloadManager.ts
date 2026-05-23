@@ -1,5 +1,6 @@
 import confetti from 'canvas-confetti';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { validateShareLink } from '../utils/shareLinkValidator';
 
 type AlertHandler = (message: string) => void;
 
@@ -73,12 +74,17 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
       return;
     }
 
-    const match = shareLink.match(/BV([a-zA-Z0-9]+)/);
-    const bvid = match ? `BV${match[1]}` : null;
-    if (!bvid) {
-      showAlertMessage('无法识别分享链接中的BV号');
+    const validation = validateShareLink(shareLink);
+    if (!validation.valid) {
+      showAlertMessage(validation.error);
       return;
     }
+    if (validation.type !== 'bv') {
+      showAlertMessage('单集下载仅支持BV号，ep号请使用番剧功能');
+      return;
+    }
+
+    const bvid = validation.id as string;
 
     setIsDownloading(true);
     setDownloadProgress(0);

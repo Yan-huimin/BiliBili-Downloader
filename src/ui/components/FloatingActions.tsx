@@ -6,14 +6,16 @@ import { LuListVideo } from 'react-icons/lu';
 import { MdOutlineVideoLibrary } from 'react-icons/md';
 import { RiBilibiliFill } from 'react-icons/ri';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
+import { BiCameraMovie } from 'react-icons/bi';
 import { TbMathFunction } from 'react-icons/tb';
 
 type FloatingActionsProps = {
-  hasShareLink: boolean;
+  shareLinkType: ShareLinkType;
   isDarkTheme: boolean;
   loginStatus: boolean;
   open: boolean;
   onOpenCollection: () => void;
+  onOpenBangumi: () => void;
   onOpenLogin: () => void;
   onOpenQueue: () => void;
   onOpenSettings: () => void;
@@ -25,11 +27,12 @@ type FloatingActionsProps = {
 };
 
 function FloatingActions({
-  hasShareLink,
+  shareLinkType,
   isDarkTheme,
   loginStatus,
   onAlreadyLoggedIn,
   onClose,
+  onOpenBangumi,
   onOpenCollection,
   onOpenLogin,
   onOpenQueue,
@@ -76,7 +79,7 @@ function FloatingActions({
             style={{ gridTemplateColumns: 'repeat(3, 38px)' }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
           >
-            {hasShareLink && (
+            {shareLinkType === 'bv' && (
               <button
                 aria-label="获取合集"
                 className="floating-actions__item"
@@ -85,6 +88,17 @@ function FloatingActions({
                 type="button"
               >
                 <MdOutlineVideoLibrary />
+              </button>
+            )}
+            {shareLinkType === 'ep' && (
+              <button
+                aria-label="获取番剧"
+                className="floating-actions__item"
+                onClick={() => closeAfterAction(onOpenBangumi)}
+                title="获取番剧"
+                type="button"
+              >
+                <BiCameraMovie />
               </button>
             )}
             <button

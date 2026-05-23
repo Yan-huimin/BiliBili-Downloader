@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { validateShareLink } from "../utils/shareLinkValidator";
 
 type AlertHandler = (message: string) => void;
 
@@ -11,13 +12,17 @@ export function useCollection(showAlert: AlertHandler) {
   const fetchAndShowCollection = useCallback(async (shareLink: string) => {
     if (!shareLink.trim()) return;
 
-    const match = shareLink.match(/BV([a-zA-Z0-9]+)/);
-    const bvid = match ? `BV${match[1]}` : null;
-    if (!bvid) {
-      showAlert("无法识别分享链接中的BV号");
+    const validation = validateShareLink(shareLink);
+    if (!validation.valid) {
+      showAlert(validation.error);
+      return;
+    }
+    if (validation.type !== 'bv') {
+      showAlert("该分享链接不包含BV号");
       return;
     }
 
+    const bvid = validation.id as string;
     setIsLoading(true);
     try {
       const result = await window.electron.fetchCollection(bvid);
@@ -55,6 +60,10 @@ export function useCollection(showAlert: AlertHandler) {
     if (!collectionData) return;
     setSelectedBvids(new Set(collectionData.videos.map((v) => v.bvid)));
   }, [collectionData]);
+
+  const deselectAll = useCallback(() => {
+    setSelectedBvids(new Set());
+  }, []);
 
   const closeCollection = useCallback(() => {
     setCollectionData(null);
@@ -98,6 +107,7 @@ export function useCollection(showAlert: AlertHandler) {
     fetchAndShowCollection,
     toggleVideoSelection,
     selectAll,
+    deselectAll,
     closeCollection,
     confirmDownload,
   };
