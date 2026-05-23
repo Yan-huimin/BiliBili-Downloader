@@ -16,9 +16,18 @@ import os from 'os';
 import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
 import type { CookieJar } from "tough-cookie";
 import { spawn } from "child_process";
+import { pipeline } from "stream/promises";
 
 const ffmpegPath = getFfmpegPath();
 const THREAD_COUNT = 4;
+const PROGRESS_EMIT_INTERVAL_MS = 250;
+
+let activeStreams: fs.WriteStream[] = [];
+let currentWriteStream: fs.WriteStream | null = null;
+
+// Track temporary download artifacts for cleanup on app exit.
+let tempDirs: string[] = [];
+let pendingFiles: string[] = [];
 
 /**
  * 判断当前是否处于开发模式。
@@ -175,14 +184,151 @@ export async function setSaveFolder(){
   return result.filePaths[0];
 }
 
+function createProgressReporter(onProgress?: (progress: number) => void) {
+  let lastEmitAt = 0;
+  let latestProgress = 0;
+
+  const emit = (progress: number, force = false) => {
+    if (!onProgress) return;
+
+    const normalizedProgress = Math.max(0, Math.min(1, progress));
+    latestProgress = Math.max(latestProgress, normalizedProgress);
+
+    const now = Date.now();
+    if (force || now - lastEmitAt >= PROGRESS_EMIT_INTERVAL_MS) {
+      lastEmitAt = now;
+      onProgress(latestProgress);
+    }
+  };
+
+  return {
+    update(progress: number) {
+      emit(progress);
+    },
+    flush(progress = latestProgress) {
+      emit(progress, true);
+    },
+  };
+}
+
+function forgetActiveStream(stream: fs.WriteStream) {
+  activeStreams = activeStreams.filter((item) => item !== stream);
+  if (currentWriteStream === stream) {
+    currentWriteStream = null;
+  }
+}
+
+function forgetPendingFile(filePath: string) {
+  pendingFiles = pendingFiles.filter((item) => item !== filePath);
+}
+
+function forgetTempDir(dir: string) {
+  tempDirs = tempDirs.filter((item) => item !== dir);
+}
+
+function forgetPendingFilesInDir(dir: string) {
+  const prefix = dir.endsWith(path.sep) ? dir : `${dir}${path.sep}`;
+  pendingFiles = pendingFiles.filter((item) => !item.startsWith(prefix));
+}
+
+function safeUnlink(filePath: string) {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch {
+    // Best-effort cleanup; Windows may still hold the file briefly.
+  }
+}
+
+async function writeStreamToFile(
+  source: NodeJS.ReadableStream,
+  targetPath: string,
+) {
+  const writer = fs.createWriteStream(targetPath);
+  activeStreams.push(writer);
+  currentWriteStream = writer;
+
+  try {
+    await pipeline(source, writer);
+  } finally {
+    forgetActiveStream(writer);
+  }
+}
+
+async function finishWriteStream(stream: fs.WriteStream) {
+  await new Promise<void>((resolve, reject) => {
+    stream.once("finish", resolve);
+    stream.once("error", reject);
+    stream.end();
+  });
+}
+
+function createLinkedAbortController(signal?: AbortSignal) {
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener("abort", onAbort, { once: true });
+    }
+  }
+
+  return {
+    signal: controller.signal,
+    abort: () => controller.abort(),
+    dispose: () => signal?.removeEventListener("abort", onAbort),
+  };
+}
+
+async function downloadSingleStream(
+  url: string,
+  targetPath: string,
+  totalSize: number,
+  onProgress: ((progress: number) => void) | undefined,
+  signal: AbortSignal,
+) {
+  const response = await client.get(url, {
+    headers: {
+      "User-Agent": headers["User-Agent"],
+      Referer: headers["Referer"],
+    },
+    responseType: "stream",
+    signal,
+  });
+
+  const responseSize = parseInt(response.headers["content-length"] || "0", 10);
+  const expectedSize = totalSize > 0 ? totalSize : responseSize;
+  let downloaded = 0;
+  const reporter = createProgressReporter(onProgress);
+
+  response.data.on("data", (chunk: Buffer) => {
+    downloaded += chunk.length;
+    reporter.update(expectedSize > 0 ? downloaded / expectedSize : 0.01);
+  });
+
+  pendingFiles.push(targetPath);
+  try {
+    await writeStreamToFile(response.data, targetPath);
+    reporter.flush(1);
+  } catch (err) {
+    safeUnlink(targetPath);
+    throw err;
+  } finally {
+    forgetPendingFile(targetPath);
+  }
+}
+
 
 
 /**
- * 通用文件下载函数，支持单线程和多线程分片下载。
- * @param url - 要下载文件的 URL。
- * @param targetPath - 下载完成后保存文件的完整路径。
- * @param onProgress - 可选，下载进度回调 (0-1)。
- * @param signal - 可选，AbortSignal 用于取消下载。
+ * Downloads a file with range streams when possible, then falls back to a single streamed write.
+ * @param url - File URL.
+ * @param targetPath - Final path on disk.
+ * @param onProgress - Optional progress callback, from 0 to 1.
+ * @param signal - Optional abort signal used to cancel the download.
  */
 export async function downloadFile(
   url: string,
@@ -190,113 +336,126 @@ export async function downloadFile(
   onProgress?: (progress: number) => void,
   signal?: AbortSignal,
 ) {
-  const head = await client.head(url, {
-    headers: {
-      'User-Agent': headers['User-Agent'],
-      'Referer': headers['Referer'],
-    },
-    signal,
-  });
+  const linkedAbort = createLinkedAbortController(signal);
+  const requestSignal = linkedAbort.signal;
 
-  const totalSize = parseInt(head.headers['content-length'] || '0', 10);
+  try {
+    let totalSize = 0;
+    let supportsRanges = false;
 
-  // 如果文件小于等于 5MB，直接单线程下载（适合音频）
-  if (totalSize <= 5 * 1024 * 1024) {
-    const resp = await client.get(url, {
-      headers: {
-        'User-Agent': headers['User-Agent'],
-        'Referer': headers['Referer'],
-      },
-      responseType: 'arraybuffer',
-      signal,
-    });
-    fs.writeFileSync(targetPath, resp.data);
-    return;
-  }
-
-  // 否则走原来的多线程下载逻辑
     try {
-      if (!head.headers['accept-ranges']?.includes('bytes')) {
-        throw new Error('server does not support Range');
-      }
-    } catch {
-      // 如果下载失败，就走单线程，降级为单线程下载
-      const resp = await client.get(url, {
+      const head = await client.head(url, {
         headers: {
-          'User-Agent': headers['User-Agent'],
-          'Referer': headers['Referer'],
+          "User-Agent": headers["User-Agent"],
+          Referer: headers["Referer"],
         },
-        responseType: 'arraybuffer',
-        signal,
+        signal: requestSignal,
       });
-      fs.writeFileSync(targetPath, resp.data);
+
+      totalSize = parseInt(head.headers["content-length"] || "0", 10);
+      supportsRanges = String(head.headers["accept-ranges"] || "").includes("bytes");
+    } catch (err) {
+      console.warn("HEAD request failed, falling back to a single streamed download:", err);
+      await downloadSingleStream(url, targetPath, 0, onProgress, requestSignal);
       return;
     }
 
-  const partSize = Math.ceil(totalSize / THREAD_COUNT);
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'bili-download-'));
-  tempDirs.push(tempDir); // 记录临时目录
-  let downloaded = 0;
+    if (totalSize <= 5 * 1024 * 1024 || !supportsRanges) {
+      await downloadSingleStream(url, targetPath, totalSize, onProgress, requestSignal);
+      return;
+    }
 
-  const downloadPart = async (start: number, end: number, index: number) => {
-    const response = await client.get(url, {
-      headers: {
-        'Range': `bytes=${start}-${end}`,
-        'User-Agent': headers['User-Agent'],
-        'Referer': headers['Referer'],
-      },
-      responseType: 'stream',
-      signal,
-    });
+    const partSize = Math.ceil(totalSize / THREAD_COUNT);
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "bili-download-"));
+    tempDirs.push(tempDir);
+    let downloaded = 0;
+    const reporter = createProgressReporter(onProgress);
 
-    const partPath = path.join(tempDir, `part_${index}`);
-    const writer = fs.createWriteStream(partPath);
-    activeStreams.push(writer); // 记录流
-    pendingFiles.push(partPath);
+    const downloadPart = async (start: number, end: number, index: number) => {
+      const response = await client.get(url, {
+        headers: {
+          Range: `bytes=${start}-${end}`,
+          "User-Agent": headers["User-Agent"],
+          Referer: headers["Referer"],
+        },
+        responseType: "stream",
+        signal: requestSignal,
+      });
 
-    return new Promise<void>((resolve, reject) => {
-      response.data.on('data', (chunk: Buffer) => {
+      const partPath = path.join(tempDir, `part_${index}`);
+      pendingFiles.push(partPath);
+
+      response.data.on("data", (chunk: Buffer) => {
         downloaded += chunk.length;
-        const progress = totalSize > 0 ? downloaded / totalSize : 0;
-        onProgress?.(progress);
+        reporter.update(downloaded / totalSize);
       });
 
-      writer.on('error', reject);
-      writer.on('finish', () => resolve());
-      response.data.pipe(writer);
-    });
-  };
+      await writeStreamToFile(response.data, partPath);
+    };
 
-  const tasks: Promise<void>[] = [];
-  for (let i = 0; i < THREAD_COUNT; i++) {
-    const start = i * partSize;
-    const end = Math.min((i + 1) * partSize - 1, totalSize - 1);
-    tasks.push(downloadPart(start, end, i));
+    try {
+      const tasks: Promise<void>[] = [];
+      for (let i = 0; i < THREAD_COUNT; i++) {
+        const start = i * partSize;
+        const end = Math.min((i + 1) * partSize - 1, totalSize - 1);
+        tasks.push(downloadPart(start, end, i));
+      }
+      const results = await Promise.allSettled(
+        tasks.map((task) =>
+          task.catch((err) => {
+            linkedAbort.abort();
+            throw err;
+          }),
+        ),
+      );
+      const failedTask = results.find(
+        (result): result is PromiseRejectedResult => result.status === "rejected",
+      );
+      if (failedTask) {
+        throw failedTask.reason;
+      }
+
+      pendingFiles.push(targetPath);
+      const writeStream = fs.createWriteStream(targetPath);
+      activeStreams.push(writeStream);
+      currentWriteStream = writeStream;
+
+      try {
+        for (let i = 0; i < THREAD_COUNT; i++) {
+          const partPath = path.join(tempDir, `part_${i}`);
+          const readStream = fs.createReadStream(partPath);
+          await pipeline(readStream, writeStream, { end: false });
+          safeUnlink(partPath);
+          forgetPendingFile(partPath);
+        }
+
+        await finishWriteStream(writeStream);
+      } finally {
+        forgetActiveStream(writeStream);
+        forgetPendingFile(targetPath);
+      }
+
+      fs.rmSync(tempDir, { recursive: true, force: true });
+      forgetPendingFilesInDir(tempDir);
+      forgetTempDir(tempDir);
+      reporter.flush(1);
+    } catch (err) {
+      linkedAbort.abort();
+      safeUnlink(targetPath);
+      try {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup failures.
+      }
+      forgetPendingFilesInDir(tempDir);
+      forgetPendingFile(targetPath);
+      forgetTempDir(tempDir);
+      throw err;
+    }
+  } finally {
+    linkedAbort.dispose();
   }
-  await Promise.all(tasks);
-
-  // 合并分片
-  // 合并分片（流式写入，避免内存爆掉）
-  const writeStream = fs.createWriteStream(targetPath);
-  currentWriteStream = writeStream;
-
-  for (let i = 0; i < THREAD_COUNT; i++) {
-    const partPath = path.join(tempDir, `part_${i}`);
-    await new Promise<void>((resolve, reject) => {
-      const readStream = fs.createReadStream(partPath);
-      readStream.on("error", reject);
-      readStream.on("end", () => {
-        fs.unlinkSync(partPath);  // 删除分片
-        resolve();
-      });
-      readStream.pipe(writeStream, { end: false }); // 不要关闭主写流
-    });
-  }
-
-  writeStream.end();
-  fs.rmdirSync(tempDir);
 }
-
 
 /**
  * 确保输出路径具有 `.mp4` 文件扩展名。
@@ -476,8 +635,9 @@ export function registerVideoDownloader(win: BrowserWindow) {
         return;
       }
 
-      const videoPath = path.join(filePath, "video.m4s");
-      const audioPath = path.join(filePath, "audio.m4s");
+      const taskSuffix = Date.now();
+      const videoPath = path.join(filePath, `video_${taskSuffix}.m4s`);
+      const audioPath = path.join(filePath, `audio_${taskSuffix}.m4s`);
 
       await downloadFile(
         video_url,
@@ -490,14 +650,7 @@ export function registerVideoDownloader(win: BrowserWindow) {
       );
       console.log("video downloaded");
 
-      const audioResp = await client.get(audio_url, {
-        headers: {
-          'User-Agent': headers['User-Agent'],
-          'Referer': headers['Referer'],
-        },
-        responseType: 'arraybuffer',
-      });
-      fs.writeFileSync(audioPath, audioResp.data);
+      await downloadFile(audio_url, audioPath);
       console.log("audio downloaded");
 
       await mergeWithFfmpeg(videoPath, audioPath, finalPath);
@@ -512,13 +665,6 @@ export function registerVideoDownloader(win: BrowserWindow) {
   });
 }
 
-
-let activeStreams: fs.WriteStream[] = [];
-let currentWriteStream: fs.WriteStream | null = null;
-
-// 记录下载时的临时目录和未完成文件
-let tempDirs: string[] = [];
-let pendingFiles: string[] = [];
 
 // 应用退出时清理未关闭流 & 临时文件
 app.on('before-quit', () => {

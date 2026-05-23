@@ -138,11 +138,11 @@ interface Window{
         sendFrameAction: (payload: FrameWindowAction) => void;
         sendLinkAndDownloadMp4: (payload: dashUrl) => Promise<dashUrl>;
         startDownload: (args: { video_url: string; audio_url: string; filePath: string }) => Promise<unknown>;
-        onDownloadProgress: (callback: (progress: number) => void) => void;
+        onDownloadProgress: (callback: (progress: number) => void) => () => void;
         setVideoFolder: () => Promise<string>;
         openPage: (payload: url)  => void;
         checkFileExist: (payload: filePathExist) => Promise<string>;
-        on: (channel: string, callback: (payload: string) => void) => void;
+        on: (channel: 'download-complete' | 'download-error', callback: (payload: string) => void) => () => void;
         sendSuccessInfo: (payload: downloadSuccess) => void;
         setSettings: (payload: Settings) => void;
         loadSettings: () => Promise<Settings>;
@@ -154,7 +154,7 @@ interface Window{
         cancelDownload: (taskId: number) => void;
         clearQueue: () => void;
         getQueue: () => Promise<DownloadTask[]>;
-        onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => void;
+        onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => () => void;
         removeTask: (taskId: number) => void;
     },
     biliApi:{

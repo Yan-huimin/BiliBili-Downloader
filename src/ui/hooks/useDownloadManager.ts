@@ -112,15 +112,19 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
       return;
     }
 
+    let mounted = true;
+
     window.biliApi.checkLogin().then((isLoggedIn) => {
-      setLoginStatus(isLoggedIn);
+      if (mounted) {
+        setLoginStatus(isLoggedIn);
+      }
     });
 
-    window.electron.onDownloadProgress((percent) => {
+    const offDownloadProgress = window.electron.onDownloadProgress((percent) => {
       setDownloadProgress(percent * 100);
     });
 
-    window.electron.onQueueUpdated((queue: DownloadTask[]) => {
+    const offQueueUpdated = window.electron.onQueueUpdated((queue: DownloadTask[]) => {
       const downloadingTask = queue.find((t) => t.status === 'downloading');
       if (downloadingTask) {
         setDownloadProgress(downloadingTask.progress);
@@ -136,7 +140,7 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
       }
     });
 
-    window.electron.on('download-complete', (filePath: string) => {
+    const offDownloadComplete = window.electron.on('download-complete', (filePath: string) => {
       showAlertMessage('下载完成');
       setDownloadProgress(0);
 
@@ -162,11 +166,19 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
       }
     });
 
-    window.electron.on('download-error', (message: string) => {
+    const offDownloadError = window.electron.on('download-error', (message: string) => {
       console.log(message);
       showAlertMessage(`下载失败:${message}`);
       setDownloadProgress(0);
     });
+
+    return () => {
+      mounted = false;
+      offDownloadProgress();
+      offQueueUpdated();
+      offDownloadComplete();
+      offDownloadError();
+    };
   }, [showAlertMessage]);
 
   return {

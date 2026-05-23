@@ -69,10 +69,11 @@ contextBridge.exposeInMainWorld("electron", {
     filePath: string;
   }) => ipcRenderer.invoke("start_download", args),
 
-  onDownloadProgress: (callback: (progress: number) => void) =>
-    ipcRenderer.on("download-progress", (_e, progress) =>
-      callback(progress)
-    ),
+  onDownloadProgress: (callback: (progress: number) => void) => {
+    const listener = (_e: Electron.IpcRendererEvent, progress: number) => callback(progress);
+    ipcRenderer.on("download-progress", listener);
+    return () => ipcRenderer.removeListener("download-progress", listener);
+  },
 
   setVideoFolder: () => ipcRenderer.invoke("setVideoFolder"),
 
@@ -85,8 +86,10 @@ contextBridge.exposeInMainWorld("electron", {
   sendSuccessInfo: (payload: downloadSuccess) =>
     ipcRenderer.send("sendSuccessInfo", payload),
 
-  on: (channel: string, callback: (...args: any[]) => void) => {
-    ipcRenderer.on(channel, (_event, ...args) => callback(...args));
+  on: (channel: string, callback: (...args: unknown[]) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, ...args: unknown[]) => callback(...args);
+    ipcRenderer.on(channel, listener);
+    return () => ipcRenderer.removeListener(channel, listener);
   },
 
   setSettings: (payload: Settings) =>
@@ -118,7 +121,9 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("getQueue"),
 
   onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => {
-    ipcRenderer.on("queue-updated", (_e, queue) => callback(queue));
+    const listener = (_e: Electron.IpcRendererEvent, queue: DownloadTask[]) => callback(queue);
+    ipcRenderer.on("queue-updated", listener);
+    return () => ipcRenderer.removeListener("queue-updated", listener);
   },
 
   removeTask: (taskId: number) =>

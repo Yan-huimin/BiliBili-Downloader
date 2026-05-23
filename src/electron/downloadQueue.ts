@@ -2,26 +2,59 @@ import { BrowserWindow } from "electron";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { client } from "./bilibiliClient.js";
 import { downloadFile, getCid, getPlayUrl, mergeWithFfmpeg } from "./utils.js";
 
 const MAX_RETRIES = 3;
+const DOWNLOAD_STALL_TIMEOUT_MS = 60_000;
+const STALL_CHECK_INTERVAL_MS = 10_000;
 
 let queue: DownloadTask[] = [];
 let nextId = 1;
 let isProcessing = false;
 let currentAbortController: AbortController | null = null;
 
-const headers = {
-  "User-Agent": "Mozilla/5.0",
-  Referer: "https://www.bilibili.com",
-  Origin: "https://www.bilibili.com",
-};
-
 function notifyQueue(win: BrowserWindow) {
   if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
     win.webContents.send("queue-updated", [...queue]);
   }
+}
+
+function safeUnlink(filePath: string) {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  } catch {
+    // Best-effort cleanup; Windows may keep the handle alive briefly.
+  }
+}
+
+function createStallWatch(
+  task: DownloadTask,
+  controller: AbortController,
+  onStall: () => void,
+) {
+  let lastActivityAt = Date.now();
+
+  const timer = setInterval(() => {
+    if (
+      task.status === "downloading" &&
+      !controller.signal.aborted &&
+      Date.now() - lastActivityAt >= DOWNLOAD_STALL_TIMEOUT_MS
+    ) {
+      onStall();
+      controller.abort();
+    }
+  }, STALL_CHECK_INTERVAL_MS);
+
+  return {
+    report() {
+      lastActivityAt = Date.now();
+    },
+    stop() {
+      clearInterval(timer);
+    },
+  };
 }
 
 export function enqueueBulk(tasks: DownloadTask[], win: BrowserWindow) {
@@ -93,15 +126,13 @@ async function processQueue(win: BrowserWindow) {
   task.status = "downloading";
   task.progress = 0;
   currentAbortController = new AbortController();
+  const abortController = currentAbortController;
   notifyQueue(win);
 
   let stalled = false;
-  const stallTimer = setTimeout(() => {
-    if (task.status === "downloading" && task.progress === 0) {
-      stalled = true;
-      currentAbortController?.abort();
-    }
-  }, 20000);
+  const stallWatch = createStallWatch(task, abortController, () => {
+    stalled = true;
+  });
 
   try {
     const cid = await getCid(task.bvid);
@@ -119,46 +150,53 @@ async function processQueue(win: BrowserWindow) {
         playUrl.video_url,
         finalPath,
         (progress) => {
+          stallWatch.report();
           task.progress = Math.round(progress * 100);
           notifyQueue(win);
         },
-        currentAbortController.signal,
+        abortController.signal,
       );
     } else {
-      const videoPath = path.join(downloadDir, "video.m4s");
-      const audioPath = path.join(downloadDir, "audio.m4s");
+      const tempSuffix = `${task.id}_${Date.now()}`;
+      const videoPath = path.join(downloadDir, `video_${tempSuffix}.m4s`);
+      const audioPath = path.join(downloadDir, `audio_${tempSuffix}.m4s`);
 
       await downloadFile(
         playUrl.video_url,
         videoPath,
         (progress) => {
+          stallWatch.report();
           task.progress = Math.round(progress * 50);
           notifyQueue(win);
         },
-        currentAbortController.signal,
+        abortController.signal,
       );
 
-      const audioResp = await client.get(playUrl.audio_url, {
-        headers: {
-          "User-Agent": headers["User-Agent"],
-          Referer: headers["Referer"],
+      await downloadFile(
+        playUrl.audio_url,
+        audioPath,
+        (progress) => {
+          stallWatch.report();
+          task.progress = 50 + Math.round(progress * 20);
+          notifyQueue(win);
         },
-        responseType: "arraybuffer",
-        signal: currentAbortController.signal,
-      });
-      fs.writeFileSync(audioPath, audioResp.data);
+        abortController.signal,
+      );
 
       task.progress = 70;
       notifyQueue(win);
+      stallWatch.stop();
 
-      await mergeWithFfmpeg(videoPath, audioPath, finalPath, currentAbortController.signal);
-
-      try { fs.unlinkSync(videoPath); } catch {}
-      try { fs.unlinkSync(audioPath); } catch {}
+      try {
+        await mergeWithFfmpeg(videoPath, audioPath, finalPath, abortController.signal);
+      } finally {
+        safeUnlink(videoPath);
+        safeUnlink(audioPath);
+      }
     }
 
     if ((task as DownloadTask).status === "cancelled") {
-      try { fs.unlinkSync(finalPath); } catch {}
+      safeUnlink(finalPath);
     } else {
       task.status = "completed";
       task.progress = 100;
@@ -172,10 +210,12 @@ async function processQueue(win: BrowserWindow) {
       const currentRetry = (task.retryCount ?? 0) + 1;
       task.retryCount = currentRetry;
 
-      if (currentRetry < MAX_RETRIES && !stalled) {
+      if (currentRetry < MAX_RETRIES) {
         task.status = "waiting";
         task.progress = 0;
-        task.errorMessage = `第 ${currentRetry} 次重试失败: ${(err as Error).message}`;
+        task.errorMessage = stalled
+          ? `下载停滞，准备第 ${currentRetry} 次重试`
+          : `第 ${currentRetry} 次重试: ${(err as Error).message}`;
         notifyQueue(win);
         if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
           win.webContents.send("download-error", task.errorMessage);
@@ -183,9 +223,9 @@ async function processQueue(win: BrowserWindow) {
       } else {
         task.status = "error";
         if (stalled) {
-          task.errorMessage = "下载超时：进度长时间为0";
+          task.errorMessage = "下载超时：进度长时间没有变化";
         } else {
-          task.errorMessage = `已重试 ${currentRetry - 1} 次均失败: ${(err as Error).message}`;
+          task.errorMessage = `已重试 ${currentRetry - 1} 次仍失败: ${(err as Error).message}`;
         }
         notifyQueue(win);
         if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
@@ -194,7 +234,7 @@ async function processQueue(win: BrowserWindow) {
       }
     }
   } finally {
-    clearTimeout(stallTimer);
+    stallWatch.stop();
     currentAbortController = null;
     isProcessing = false;
     notifyQueue(win);

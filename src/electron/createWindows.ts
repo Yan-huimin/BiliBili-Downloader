@@ -12,6 +12,7 @@ export function createMainWindow() {
     const mainWindow = new BrowserWindow({
         webPreferences: {
             // devTools: true,
+            backgroundThrottling: false,
             webSecurity: false,
             preload: getPreloadPath(),
             // session: session.fromPartition('persist:bili'),
@@ -37,5 +38,13 @@ export function createMainWindow() {
     mainWindow.webContents.once('did-finish-load', () => {
         mainWindow.show();
     });
+
+    mainWindow.webContents.on("render-process-gone", (_event, details) => {
+        console.error("Renderer process exited:", details);
+        if (!mainWindow.isDestroyed() && details.reason !== "clean-exit") {
+            mainWindow.reload();
+        }
+    });
+
   return mainWindow;
 }

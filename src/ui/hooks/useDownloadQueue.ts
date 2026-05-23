@@ -8,9 +8,11 @@ export function useDownloadQueue(visible: boolean) {
   }, [visible]);
 
   useEffect(() => {
-    window.electron.onQueueUpdated((updatedQueue) => {
+    const offQueueUpdated = window.electron.onQueueUpdated((updatedQueue) => {
       setQueue([...updatedQueue]);
     });
+
+    return offQueueUpdated;
   }, []);
 
   const handleCancel = useCallback((taskId: number) => {
