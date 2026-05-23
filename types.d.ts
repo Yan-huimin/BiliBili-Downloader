@@ -156,6 +156,7 @@ interface Window{
         getQueue: () => Promise<DownloadTask[]>;
         onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => () => void;
         removeTask: (taskId: number) => void;
+        onBackgroundModeChange: (callback: (isBackgroundMode: boolean) => void) => () => void;
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;

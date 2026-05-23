@@ -6,6 +6,7 @@ import { RiBilibiliFill } from 'react-icons/ri';
 type DownloadPanelProps = {
   currentDownloadTitle: string;
   downloadProgress: number;
+  isBackgroundMode: boolean;
   isDownloading: boolean;
   onDownload: () => void;
   onFolderSelect: () => void;
@@ -18,6 +19,7 @@ type DownloadPanelProps = {
 function DownloadPanel({
   currentDownloadTitle,
   downloadProgress,
+  isBackgroundMode,
   isDownloading,
   onDownload,
   onFolderSelect,
@@ -84,7 +86,7 @@ function DownloadPanel({
         </label>
 
         <div className="progress-slot" aria-live="polite">
-          {isDownloading && (
+          {isDownloading && !isBackgroundMode && (
             <div className="progress-block" id="progressBar">
               <div className="progress-block__meta">
                 <span>下载进度</span>

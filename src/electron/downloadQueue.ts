@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { downloadFile, getCid, getPlayUrl, mergeWithFfmpeg } from "./utils.js";
+import { updateTrayDownloadStatus } from "./tray.js";
 
 const MAX_RETRIES = 3;
 const DOWNLOAD_STALL_TIMEOUT_MS = 60_000;
@@ -16,6 +17,21 @@ let currentAbortController: AbortController | null = null;
 function notifyQueue(win: BrowserWindow) {
   if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
     win.webContents.send("queue-updated", [...queue]);
+  }
+
+  // 同步下载状态到 Tray
+  const downloadingTask = queue.find((t) => t.status === "downloading");
+  if (downloadingTask) {
+    updateTrayDownloadStatus({
+      isDownloading: true,
+      taskName: downloadingTask.title || downloadingTask.bvid,
+      progress: downloadingTask.progress,
+    });
+  } else {
+    const hasPending = queue.some((t) => t.status === "waiting");
+    if (!hasPending) {
+      updateTrayDownloadStatus({ isDownloading: false });
+    }
   }
 }
 

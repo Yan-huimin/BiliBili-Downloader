@@ -14,6 +14,8 @@ import { useDownloadManager } from './hooks/useDownloadManager';
 import { useProductionGuards } from './hooks/useProductionGuards';
 import { useTransientAlert } from './hooks/useTransientAlert';
 import { getShareLinkType } from './utils/shareLinkValidator';
+import { useBackgroundMode } from './hooks/useBackgroundMode';
+import { useAppRuntimeStore } from './stores/useAppRuntimeStore';
 
 function getStatusBadge(episodeStatus: BangumiEpisodeStatus): VideoListItem['statusBadge'] {
   switch (episodeStatus) {
@@ -39,6 +41,8 @@ function App() {
   const { alertMessage, showAlert, showAlertMessage } = useTransientAlert();
 
   useProductionGuards();
+  useBackgroundMode();
+  const { isBackgroundMode } = useAppRuntimeStore();
 
   const {
     currentDownloadTitle,
@@ -169,6 +173,7 @@ function App() {
         <DownloadPanel
           currentDownloadTitle={currentDownloadTitle}
           downloadProgress={downloadProgress}
+          isBackgroundMode={isBackgroundMode}
           isDownloading={isDownloading}
           onDownload={handleDownload}
           onFolderSelect={handleFolderSelect}

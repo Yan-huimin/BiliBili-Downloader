@@ -9,7 +9,14 @@
     "node_modules/ffmpeg-static/**"
   ],
  "icon": "./desktopIcon.png",
- "extraResources": ["dist-electron/preload.cjs", "src/assets/**"],
+ "extraResources": [
+    "dist-electron/preload.cjs",
+    "src/assets/**",
+    {
+      "from": "src/ui/assets/icon.ico",
+      "to": "icon.ico"
+    }
+  ],
  "mac": {
      "target": "dmg"
  },

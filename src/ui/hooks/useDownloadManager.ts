@@ -1,6 +1,7 @@
 import confetti from 'canvas-confetti';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { validateShareLink } from '../utils/shareLinkValidator';
+import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
 
 type AlertHandler = (message: string) => void;
 
@@ -33,6 +34,35 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
   const [loginStatus, setLoginStatus] = useState(false);
   const fireworkParticlesRef = useRef(false);
   const systemNotificationRef = useRef(false);
+
+  const { isBackgroundMode } = useAppRuntimeStore();
+  const isBackgroundModeRef = useRef(false);
+  const latestQueueRef = useRef<DownloadTask[]>([]);
+
+  // 保持 ref 与 state 同步，供 IPC 回调中检查
+  useEffect(() => {
+    isBackgroundModeRef.current = isBackgroundMode;
+  }, [isBackgroundMode]);
+
+  // 离开后台模式时恢复 UI 状态
+  useEffect(() => {
+    if (!isBackgroundMode && latestQueueRef.current.length > 0) {
+      const queue = latestQueueRef.current;
+      const downloadingTask = queue.find((t) => t.status === 'downloading');
+      if (downloadingTask) {
+        setDownloadProgress(downloadingTask.progress);
+        setCurrentDownloadTitle(downloadingTask.title);
+        setIsDownloading(true);
+      } else {
+        const hasPending = queue.some((t) => t.status === 'waiting');
+        setIsDownloading(hasPending);
+        if (!hasPending) {
+          setDownloadProgress(0);
+          setCurrentDownloadTitle('');
+        }
+      }
+    }
+  }, [isBackgroundMode]);
 
   const loadSettings = useCallback(async () => {
     if (!window.electron?.loadSettings) {
@@ -121,10 +151,14 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
     });
 
     const offDownloadProgress = window.electron.onDownloadProgress((percent) => {
+      if (isBackgroundModeRef.current) return;
       setDownloadProgress(percent * 100);
     });
 
     const offQueueUpdated = window.electron.onQueueUpdated((queue: DownloadTask[]) => {
+      latestQueueRef.current = queue;
+      if (isBackgroundModeRef.current) return;
+
       const downloadingTask = queue.find((t) => t.status === 'downloading');
       if (downloadingTask) {
         setDownloadProgress(downloadingTask.progress);
@@ -141,33 +175,31 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
     });
 
     const offDownloadComplete = window.electron.on('download-complete', (filePath: string) => {
-      showAlertMessage('下载完成');
       setDownloadProgress(0);
 
+      if (isBackgroundModeRef.current) return;
+
+      showAlertMessage('下载完成');
+
       if (systemNotificationRef.current) {
-        console.log('发送系统通知');
         window.electron.sendSuccessInfo({
           types: '下载成功',
           message: `文件已下载到: ${filePath}`,
         });
-      } else {
-        console.log('未启用系统通知');
       }
 
       if (fireworkParticlesRef.current) {
-        console.log('播放彩带特效');
         confetti({
           particleCount: 150,
           spread: 30,
           origin: { y: 0.8 },
         });
-      } else {
-        console.log('未启用彩带特效');
       }
     });
 
     const offDownloadError = window.electron.on('download-error', (message: string) => {
       console.log(message);
+      if (isBackgroundModeRef.current) return;
       showAlertMessage(`下载失败:${message}`);
       setDownloadProgress(0);
     });

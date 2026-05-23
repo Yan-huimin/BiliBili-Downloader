@@ -1,7 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useAppRuntimeStore } from "../stores/useAppRuntimeStore";
 
 export function useDownloadQueue(visible: boolean) {
   const [queue, setQueue] = useState<DownloadTask[]>([]);
+
+  const { isBackgroundMode } = useAppRuntimeStore();
+  const isBackgroundModeRef = useRef(false);
+  const latestQueueRef = useRef<DownloadTask[]>([]);
+
+  useEffect(() => {
+    isBackgroundModeRef.current = isBackgroundMode;
+  }, [isBackgroundMode]);
+
+  // 离开后台模式时恢复队列状态
+  useEffect(() => {
+    if (!isBackgroundMode && latestQueueRef.current.length > 0) {
+      setQueue([...latestQueueRef.current]);
+    }
+  }, [isBackgroundMode]);
 
   useEffect(() => {
     window.electron.getQueue().then(setQueue);
@@ -9,6 +25,8 @@ export function useDownloadQueue(visible: boolean) {
 
   useEffect(() => {
     const offQueueUpdated = window.electron.onQueueUpdated((updatedQueue) => {
+      latestQueueRef.current = updatedQueue;
+      if (isBackgroundModeRef.current) return;
       setQueue([...updatedQueue]);
     });
 

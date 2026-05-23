@@ -128,6 +128,17 @@ contextBridge.exposeInMainWorld("electron", {
 
   removeTask: (taskId: number) =>
     ipcRenderer.send("removeTask", taskId),
+
+  onBackgroundModeChange: (callback: (isBackgroundMode: boolean) => void) => {
+    const enterListener = () => callback(true);
+    const leaveListener = () => callback(false);
+    ipcRenderer.on("app:enter-background-mode", enterListener);
+    ipcRenderer.on("app:leave-background-mode", leaveListener);
+    return () => {
+      ipcRenderer.removeListener("app:enter-background-mode", enterListener);
+      ipcRenderer.removeListener("app:leave-background-mode", leaveListener);
+    };
+  },
 });
 
 contextBridge.exposeInMainWorld("biliApi", {
