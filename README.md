@@ -11,7 +11,7 @@
 
 应用采用固定 `400 x 500` 的无边框窗口，主界面是带网格背景的毛玻璃风格。你可以粘贴 B 站视频分享链接，选择保存目录，然后下载视频；登录后可使用账号权限内的更高清晰度。支持合集视频批量下载和下载队列管理。
 
-![深色主题主界面](./public/app.png)
+![深色主题主界面](./public/ex.svg)
 
 ## 功能
 
@@ -28,6 +28,9 @@
 - 支持下载完成后的系统通知和可选彩带动画。
 - 自定义 Electron 标题栏，保留关闭、最小化和最大化按钮，屏蔽双击全屏。
 - 支持深色和浅色主题切换，默认深色主题。
+- **系统托盘与后台模式**：支持最小化到系统托盘，后台继续下载；托盘图标实时显示下载进度，支持单实例锁防止重复启动。
+- **动漫番剧、电影、综艺下载**：支持识别番剧、电影、综艺等类型链接，可浏览剧集列表并选择具体集数下载。
+- **流式下载与停滞重试**：视频和音频轨道流式写入，60 秒无活动自动中止并重试；后台模式下跳过 UI 渲染降低 CPU 占用。
 
 ## 截图
 
@@ -55,6 +58,13 @@
 3. 在合集列表中勾选需要下载的视频（默认选中输入链接对应的视频）。
 4. 可通过”全选”按钮一键选中全部视频。
 5. 点击”下载”，所选视频批量加入下载队列。
+
+### 番剧、电影、综艺下载
+
+1. 粘贴番剧、电影或综艺的分享链接到输入框。
+2. 应用会自动识别链接类型，展示剧集/期数列表。
+3. 勾选需要下载的剧集（支持全选）。
+4. 点击”下载”，所选剧集批量加入下载队列。
 
 ### 下载队列管理
 
@@ -86,10 +96,11 @@
 
 ```text
 src/
-  electron/              Electron 主进程、IPC、下载队列和 B 站接口逻辑
+  electron/              Electron 主进程、IPC、下载队列与业务逻辑
     downloadQueue.ts     下载队列服务（顺序执行、重试、超时）
     collectionService.ts 合集信息获取服务
-    utils.ts             下载核心（分片、合并）、设置、Cookie 管理
+    bangumiService.ts    番剧、电影、综艺信息服务
+    utils.ts             下载核心（分片、合并、流式写入）、设置、Cookie 管理
     ipcEventHandler.ts   IPC 事件注册与分发
     preload.cts          contextBridge 暴露给渲染进程的 API
     bilibiliAuthService.ts  B 站扫码登录逻辑
@@ -97,28 +108,35 @@ src/
     cookieStore.ts       Cookie 持久化
     createWindows.ts     窗口创建
     pathResolver.ts      路径解析
+    tray.ts              系统托盘（菜单、进度显示、单实例锁）
     main.ts              应用入口
   ui/
     components/          React 展示组件
-      CollectionPanel.tsx  合集选择面板
+      VideoListPanel.tsx   番剧/电影/综艺剧集选择面板
       DownloadQueue.tsx    下载队列面板
       DownloadPanel.tsx    主下载面板
       FloatingActions.tsx  fx 浮动菜单
+      QueueTaskItem.tsx    队列任务条目
       Settings.tsx         设置面板
       LoginBili.tsx        扫码登录面板
       Header.tsx           标题栏
       AlertToast.tsx       通知提示
     hooks/               下载、合集、队列、设置、登录等自定义 hooks
       useDownloadManager.ts  下载管理 hook
+      useBangumi.ts          番剧业务 hook
       useCollection.ts       合集业务 hook
       useDownloadQueue.ts    下载队列 hook
       useSettingsPanel.ts    设置 hook
       useBiliQrLogin.ts      扫码登录 hook
+      useBackgroundMode.ts   后台模式 hook
       useTransientAlert.ts   通知 hook
       useClickOutside.ts     点击外部关闭 hook
+      useProductionGuards.ts 生产环境保护 hook
     constants/           清晰度等静态配置
+    utils/               分享链接校验等工具
+    stores/              全局状态（应用运行时等）
     css/                 毛玻璃界面与弹窗样式
-      Panels.css          合集和队列面板样式
+      Panels.css          面板样式
 public/                  README 截图与公共静态资源
 e2e/                     Playwright 端到端测试
 types.d.ts              全局类型定义
@@ -178,9 +196,9 @@ npx playwright install
 
 ## 注意事项
 
-- 支持包含 BV 号的 B 站视频链接和合集链接。
-- 高清、4K 等清晰度取决于登录账号权限和 B 站接口返回结果。
-- 下载失败的视频会自动重试最多 3 次，超时任务（5 秒无进度）直接标记失败。
+- 支持包含 BV 号的 B 站视频链接，以及番剧、电影、综艺等类型的分享链接。
+- 高清、4K 等清晰度取决于登录账号权限。
+- 下载失败的视频会自动重试最多 3 次，流式下载 60 秒无进度自动中止并重试。
 - 下载内容请遵守 B 站用户协议和相关版权规定，本项目仅用于学习与个人使用。
 
 ## 作者
