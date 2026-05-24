@@ -1,5 +1,6 @@
 import { BrowserWindow, globalShortcut } from "electron";
-import { getPreloadPath, getUiPath } from "./pathResolver.js";
+import { APP_NAME } from "./appIdentity.js";
+import { getAppIconPath, getPreloadPath, getUiPath } from "./pathResolver.js";
 import { isDev } from "./utils.js";
 
 /**
@@ -12,16 +13,20 @@ export function createMainWindow() {
     const mainWindow = new BrowserWindow({
         webPreferences: {
             // devTools: true,
-            backgroundThrottling: false,
+            backgroundThrottling: true,
             webSecurity: false,
             preload: getPreloadPath(),
             // session: session.fromPartition('persist:bili'),
         },
         resizable: false,
+        maximizable: false,
+        fullscreenable: false,
         width: 400,
         height: 500,
         frame: false,
         show: false,
+        title: APP_NAME,
+        icon: getAppIconPath(),
     });  // 在其中可以设置窗口初始位置，大小以及是否显示默认的菜单栏等内容
 
     // registerBiliImageHeaders();
@@ -32,11 +37,35 @@ export function createMainWindow() {
         mainWindow.loadFile(getUiPath());
     }
 
+    mainWindow.setMaximizable(false);
+    mainWindow.setFullScreenable(false);
+
+    const enforceFixedWindowState = () => {
+        if (mainWindow.isDestroyed()) return;
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize();
+        }
+        if (mainWindow.isFullScreen()) {
+            mainWindow.setFullScreen(false);
+        }
+    };
+
+    mainWindow.on("maximize", enforceFixedWindowState);
+    mainWindow.on("enter-full-screen", enforceFixedWindowState);
+    mainWindow.on("enter-html-full-screen", enforceFixedWindowState);
+
     globalShortcut.register('F12', () => {});
+    globalShortcut.register('F11', () => {});
     globalShortcut.register('Control+Shift+I', () => {});
 
     mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.setTitle(APP_NAME);
         mainWindow.show();
+    });
+
+    mainWindow.webContents.on("page-title-updated", (event) => {
+        event.preventDefault();
+        mainWindow.setTitle(APP_NAME);
     });
 
     mainWindow.webContents.on("render-process-gone", (_event, details) => {

@@ -1,15 +1,3 @@
-@keyframes gradient-x {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
 @keyframes loading-bounce {
   0%,
   80%,
@@ -403,7 +391,6 @@
   font-weight: 780;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: gradient-x 4s ease infinite;
 }
 
 .floating-actions {
@@ -466,4 +453,15 @@
 .alert-toast__icon {
   color: var(--accent);
   flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
 }

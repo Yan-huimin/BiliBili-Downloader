@@ -16,7 +16,7 @@ const VideoListItemRow = ({ item, index, checked, onToggle }: VideoListItemRowPr
 
   return (
     <label
-      className={`video-list-item${!item.selectable ? " video-list-item--disabled" : ""}`}
+      className={`video-list-item${checked ? " is-selected" : ""}${!item.selectable ? " video-list-item--disabled" : ""}`}
       key={item.key}
     >
       <span className="video-list-item__index">{index + 1}</span>

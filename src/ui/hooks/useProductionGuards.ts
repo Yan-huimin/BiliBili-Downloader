@@ -1,7 +1,14 @@
 import { useEffect } from 'react';
+import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
 
 export function useProductionGuards() {
+  const { isBackgroundMode } = useAppRuntimeStore();
+
   useEffect(() => {
+    if (isBackgroundMode) {
+      return;
+    }
+
     const preventContextMenu = (event: MouseEvent) => event.preventDefault();
 
     const preventDevToolsShortcut = (event: KeyboardEvent) => {
@@ -25,5 +32,5 @@ export function useProductionGuards() {
       window.removeEventListener('keydown', preventDevToolsShortcut);
       window.removeEventListener('dblclick', preventDoubleClickFullscreen);
     };
-  }, []);
+  }, [isBackgroundMode]);
 }

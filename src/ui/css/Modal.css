@@ -67,7 +67,7 @@
 }
 
 .modal-button {
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 8px;
   color: white;
   cursor: pointer;
@@ -84,11 +84,13 @@
 }
 
 .modal-button--primary {
-  background: linear-gradient(100deg, var(--accent), var(--accent-green));
+  background: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 72%, transparent);
 }
 
 .modal-button--danger {
-  background: linear-gradient(100deg, #ff5f57, var(--accent-strong));
+  background: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--accent-strong) 72%, transparent);
 }
 
 .settings-panel {

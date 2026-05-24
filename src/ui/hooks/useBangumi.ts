@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { validateShareLink } from "../utils/shareLinkValidator";
+import { fetchCachedBangumiEpisodes } from "../stores/videoInfoCache";
 
 type AlertHandler = (message: string) => void;
 
@@ -22,7 +23,7 @@ export function useBangumi(showAlert: AlertHandler) {
 
     const epId = validation.id as number;
     try {
-      const result = await window.electron.fetchBangumiEpisodes(epId);
+      const result = await fetchCachedBangumiEpisodes(epId);
       if (!result || result.episodes.length === 0) {
         showAlert("未获取到该番剧的正片内容");
         setBangumiData(null);

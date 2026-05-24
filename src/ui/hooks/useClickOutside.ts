@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
 
 export function useClickOutside<T extends HTMLElement>(
   enabled: boolean,
@@ -6,13 +7,14 @@ export function useClickOutside<T extends HTMLElement>(
 ) {
   const elementRef = useRef<T>(null);
   const callbackRef = useRef(onOutsideClick);
+  const { isBackgroundMode } = useAppRuntimeStore();
 
   useEffect(() => {
     callbackRef.current = onOutsideClick;
   }, [onOutsideClick]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || isBackgroundMode) {
       return;
     }
 
@@ -27,7 +29,7 @@ export function useClickOutside<T extends HTMLElement>(
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [enabled]);
+  }, [enabled, isBackgroundMode]);
 
   return elementRef;
 }

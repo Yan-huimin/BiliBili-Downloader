@@ -56,7 +56,7 @@ function App() {
     setSavePath,
     setShareLink,
     shareLink,
-  } = useDownloadManager(showAlertMessage, showSettings);
+  } = useDownloadManager(showAlertMessage);
 
   const {
     collectionData,

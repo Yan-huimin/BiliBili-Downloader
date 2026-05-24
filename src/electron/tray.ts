@@ -14,7 +14,8 @@ let currentStatus: DownloadTrayStatus = { isDownloading: false };
 let lastMenuUpdate = 0;
 let _isQuitting = false;
 
-const MENU_THROTTLE_MS = 500;
+const FOREGROUND_MENU_THROTTLE_MS = 500;
+const BACKGROUND_MENU_THROTTLE_MS = 3000;
 
 function getTrayIconPath(): string {
   if (app.isPackaged) {
@@ -53,9 +54,18 @@ function rebuildMenu(): void {
   tray.setContextMenu(menu);
 }
 
+function getMenuThrottleMs(): number {
+  return mainWindowRef?.isVisible() ? FOREGROUND_MENU_THROTTLE_MS : BACKGROUND_MENU_THROTTLE_MS;
+}
+
+function rebuildMenuNow(): void {
+  lastMenuUpdate = Date.now();
+  rebuildMenu();
+}
+
 function throttledRebuildMenu(): void {
   const now = Date.now();
-  if (now - lastMenuUpdate < MENU_THROTTLE_MS) return;
+  if (now - lastMenuUpdate < getMenuThrottleMs()) return;
   lastMenuUpdate = now;
   rebuildMenu();
 }
@@ -66,6 +76,8 @@ function throttledRebuildMenu(): void {
  */
 export function updateTrayDownloadStatus(status: DownloadTrayStatus): void {
   const prev = currentStatus;
+  const hasModeChanged = prev.isDownloading !== status.isDownloading || prev.taskName !== status.taskName;
+
   if (
     prev.isDownloading === status.isDownloading &&
     prev.taskName === status.taskName &&
@@ -75,6 +87,12 @@ export function updateTrayDownloadStatus(status: DownloadTrayStatus): void {
   }
 
   currentStatus = { ...status };
+
+  if (hasModeChanged || !status.isDownloading) {
+    rebuildMenuNow();
+    return;
+  }
+
   throttledRebuildMenu();
 }
 
@@ -97,7 +115,7 @@ export function showMainWindow(): void {
 
   if (!win.webContents.isDestroyed()) {
     win.webContents.send('app:leave-background-mode');
-    win.webContents.setBackgroundThrottling(false);
+    win.webContents.setBackgroundThrottling(true);
   }
 }
 

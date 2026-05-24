@@ -1,5 +1,6 @@
 {
  "appId": "com.yhm.bili",
+ "productName": "BiliDownload",
  "files": [
     "dist-electron",
     "dist-react",

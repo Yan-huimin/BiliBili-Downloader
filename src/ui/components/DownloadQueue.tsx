@@ -30,7 +30,10 @@ function DownloadQueue({ visible, onClose }: DownloadQueueProps) {
   return (
     <div className="modal-layer">
       <div className="modal-panel queue-panel glass-panel" ref={modalRef}>
-        <header className="panel-header">下载{hasItems ? ` (${queue.length})` : ""}</header>
+        <header className="panel-header">
+          下载队列
+          <span className="panel-header__count">{queue.length}</span>
+        </header>
 
         <div className="panel-scroll">
           {!hasItems ? (

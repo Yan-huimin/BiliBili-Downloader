@@ -1,8 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppRuntimeStore } from "../stores/useAppRuntimeStore";
+import {
+  getCachedQueue,
+  hasQueueCache,
+  setCachedQueue,
+  shouldRefreshQueue,
+} from "../stores/queueStore";
 
 export function useDownloadQueue(visible: boolean) {
-  const [queue, setQueue] = useState<DownloadTask[]>([]);
+  const [queue, setQueue] = useState<DownloadTask[]>(() => getCachedQueue());
 
   const { isBackgroundMode } = useAppRuntimeStore();
   const isBackgroundModeRef = useRef(false);
@@ -14,24 +20,40 @@ export function useDownloadQueue(visible: boolean) {
 
   // 离开后台模式时恢复队列状态
   useEffect(() => {
-    if (!isBackgroundMode && latestQueueRef.current.length > 0) {
-      setQueue([...latestQueueRef.current]);
+    if (isBackgroundMode || !visible) return;
+
+    if (hasQueueCache()) {
+      setQueue(getCachedQueue());
     }
-  }, [isBackgroundMode]);
+
+    if (!shouldRefreshQueue()) {
+      return;
+    }
+
+    let mounted = true;
+    window.electron.getQueue().then((currentQueue) => {
+      if (mounted) {
+        setCachedQueue(currentQueue);
+        setQueue(currentQueue);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [isBackgroundMode, visible]);
 
   useEffect(() => {
-    window.electron.getQueue().then(setQueue);
-  }, [visible]);
+    if (!visible || isBackgroundMode) return;
 
-  useEffect(() => {
     const offQueueUpdated = window.electron.onQueueUpdated((updatedQueue) => {
       latestQueueRef.current = updatedQueue;
-      if (isBackgroundModeRef.current) return;
+      setCachedQueue(updatedQueue);
       setQueue([...updatedQueue]);
     });
 
     return offQueueUpdated;
-  }, []);
+  }, [isBackgroundMode, visible]);
 
   const handleCancel = useCallback((taskId: number) => {
     window.electron.cancelDownload(taskId);
@@ -52,6 +74,7 @@ export function useDownloadQueue(visible: boolean) {
 
   const handleClear = useCallback(() => {
     window.electron.clearQueue();
+    setCachedQueue([]);
     setQueue([]);
   }, []);
 

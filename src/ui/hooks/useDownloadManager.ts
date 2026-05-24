@@ -2,6 +2,8 @@ import confetti from 'canvas-confetti';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { validateShareLink } from '../utils/shareLinkValidator';
 import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
+import { markQueueNeedsRefresh, setCachedQueue } from '../stores/queueStore';
+import { useSettingsStore } from '../stores/settingsStore';
 
 type AlertHandler = (message: string) => void;
 
@@ -25,7 +27,7 @@ function hasDownloadApi() {
   );
 }
 
-export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefreshKey: boolean) {
+export function useDownloadManager(showAlertMessage: AlertHandler) {
   const [shareLink, setShareLink] = useState('');
   const [savePath, setSavePath] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -36,8 +38,29 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
   const systemNotificationRef = useRef(false);
 
   const { isBackgroundMode } = useAppRuntimeStore();
+  const { loadSettings, settings } = useSettingsStore();
   const isBackgroundModeRef = useRef(false);
   const latestQueueRef = useRef<DownloadTask[]>([]);
+
+  const applyQueueState = useCallback((queue: DownloadTask[]) => {
+    latestQueueRef.current = queue;
+    setCachedQueue(queue);
+
+    const downloadingTask = queue.find((t) => t.status === 'downloading');
+    if (downloadingTask) {
+      setDownloadProgress(downloadingTask.progress);
+      setCurrentDownloadTitle(downloadingTask.title);
+      setIsDownloading(true);
+      return;
+    }
+
+    const hasPending = queue.some((t) => t.status === 'waiting');
+    setIsDownloading(hasPending);
+    if (!hasPending) {
+      setDownloadProgress(0);
+      setCurrentDownloadTitle('');
+    }
+  }, []);
 
   // 保持 ref 与 state 同步，供 IPC 回调中检查
   useEffect(() => {
@@ -46,43 +69,19 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
 
   // 离开后台模式时恢复 UI 状态
   useEffect(() => {
-    if (!isBackgroundMode && latestQueueRef.current.length > 0) {
-      const queue = latestQueueRef.current;
-      const downloadingTask = queue.find((t) => t.status === 'downloading');
-      if (downloadingTask) {
-        setDownloadProgress(downloadingTask.progress);
-        setCurrentDownloadTitle(downloadingTask.title);
-        setIsDownloading(true);
-      } else {
-        const hasPending = queue.some((t) => t.status === 'waiting');
-        setIsDownloading(hasPending);
-        if (!hasPending) {
-          setDownloadProgress(0);
-          setCurrentDownloadTitle('');
-        }
+    if (isBackgroundMode || !window.electron?.getQueue) return;
+
+    let mounted = true;
+    window.electron.getQueue().then((queue) => {
+      if (mounted) {
+        applyQueueState(queue);
       }
-    }
-  }, [isBackgroundMode]);
+    });
 
-  const loadSettings = useCallback(async () => {
-    if (!window.electron?.loadSettings) {
-      console.warn('electron API not available, skip loadSettings');
-      return;
-    }
-
-    const settings = await window.electron.loadSettings();
-    console.log('设置：' + JSON.stringify(settings));
-
-    if (settings.downloadPath) {
-      setSavePath(settings.downloadPath);
-    }
-    if (settings.fireworkParticles !== undefined) {
-      fireworkParticlesRef.current = settings.fireworkParticles;
-    }
-    if (settings.systemNotification !== undefined) {
-      systemNotificationRef.current = settings.systemNotification;
-    }
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [applyQueueState, isBackgroundMode]);
 
   const handleFolderSelect = useCallback(async () => {
     try {
@@ -134,7 +133,27 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
 
   useEffect(() => {
     void loadSettings();
-  }, [loadSettings, settingsRefreshKey]);
+  }, [loadSettings]);
+
+  useEffect(() => {
+    if (!settings) return;
+
+    if (settings.downloadPath) {
+      setSavePath(settings.downloadPath);
+    }
+    if (settings.fireworkParticles !== undefined) {
+      fireworkParticlesRef.current = settings.fireworkParticles;
+    }
+    if (settings.systemNotification !== undefined) {
+      systemNotificationRef.current = settings.systemNotification;
+    }
+  }, [settings]);
+
+  useEffect(() => {
+    if (isBackgroundMode) {
+      markQueueNeedsRefresh();
+    }
+  }, [isBackgroundMode]);
 
   useEffect(() => {
     if (!hasDownloadApi()) {
@@ -143,35 +162,28 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
     }
 
     let mounted = true;
-
     window.biliApi.checkLogin().then((isLoggedIn) => {
       if (mounted) {
         setLoginStatus(isLoggedIn);
       }
     });
 
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasDownloadApi() || isBackgroundMode) {
+      return;
+    }
+
     const offDownloadProgress = window.electron.onDownloadProgress((percent) => {
-      if (isBackgroundModeRef.current) return;
       setDownloadProgress(percent * 100);
     });
 
     const offQueueUpdated = window.electron.onQueueUpdated((queue: DownloadTask[]) => {
-      latestQueueRef.current = queue;
-      if (isBackgroundModeRef.current) return;
-
-      const downloadingTask = queue.find((t) => t.status === 'downloading');
-      if (downloadingTask) {
-        setDownloadProgress(downloadingTask.progress);
-        setCurrentDownloadTitle(downloadingTask.title);
-        setIsDownloading(true);
-      } else {
-        const hasPending = queue.some((t) => t.status === 'waiting');
-        setIsDownloading(hasPending);
-        if (!hasPending) {
-          setDownloadProgress(0);
-          setCurrentDownloadTitle('');
-        }
-      }
+      applyQueueState(queue);
     });
 
     const offDownloadComplete = window.electron.on('download-complete', (filePath: string) => {
@@ -205,13 +217,12 @@ export function useDownloadManager(showAlertMessage: AlertHandler, settingsRefre
     });
 
     return () => {
-      mounted = false;
       offDownloadProgress();
       offQueueUpdated();
       offDownloadComplete();
       offDownloadError();
     };
-  }, [showAlertMessage]);
+  }, [applyQueueState, isBackgroundMode, showAlertMessage]);
 
   return {
     currentDownloadTitle,

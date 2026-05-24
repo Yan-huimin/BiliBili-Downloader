@@ -40,7 +40,6 @@
 }
 
 .titlebar-status__light {
-  animation: breath 2s infinite ease-in-out;
   background-color: #31d158;
   border-radius: 50%;
   height: 9px;
@@ -59,20 +58,17 @@
   background-color: #28c840;
 }
 
+#maximize:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
 #close:hover,
 #minimize:hover,
 #maximize:hover {
   filter: brightness(0.92) saturate(1.12);
 }
 
-@keyframes breath {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(49, 209, 88, 0.32);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(49, 209, 88, 0.08);
-    transform: scale(1.16);
-  }
+#maximize:disabled:hover {
+  filter: none;
 }

@@ -14,18 +14,6 @@ interface QueueTaskItemProps {
   onRetry: (task: DownloadTask) => void;
 }
 
-function taskPropsEqual(prev: QueueTaskItemProps, next: QueueTaskItemProps): boolean {
-  const p = prev.task;
-  const n = next.task;
-  return (
-    p.id === n.id &&
-    p.status === n.status &&
-    p.progress === n.progress &&
-    (p.retryCount ?? 0) === (n.retryCount ?? 0) &&
-    (p.errorMessage ?? "") === (n.errorMessage ?? "")
-  );
-}
-
 const QueueTaskItem = ({ task, onCancel, onRetry }: QueueTaskItemProps) => {
   const isTerminal =
     task.status === "completed" || task.status === "error" || task.status === "cancelled";
@@ -39,11 +27,15 @@ const QueueTaskItem = ({ task, onCancel, onRetry }: QueueTaskItemProps) => {
   }, [isMerging, isRetrying, task.status, task.retryCount]);
 
   const statusClass = isMerging ? "merging" : task.status;
+  const itemClass = [
+    "queue-item",
+    `queue-item--${statusClass}`,
+    task.status === "completed" ? "queue-item--done" : "",
+    task.status === "error" ? "queue-item--fail" : "",
+  ].filter(Boolean).join(" ");
 
   return (
-    <div
-      className={`queue-item${task.status === "completed" ? " queue-item--done" : ""}${task.status === "error" ? " queue-item--fail" : ""}`}
-    >
+    <div className={itemClass}>
       <div className="queue-item__info">
         <div className="queue-item__header">
           <span className="queue-item__title" title={task.title}>
@@ -89,4 +81,3 @@ const QueueTaskItem = ({ task, onCancel, onRetry }: QueueTaskItemProps) => {
 };
 
 export default QueueTaskItem;
-export { taskPropsEqual };

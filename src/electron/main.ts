@@ -1,9 +1,16 @@
 import { app } from 'electron'
+import { APP_NAME, APP_USER_MODEL_ID } from './appIdentity.js';
 import { registerBiliImageHeaders, registerVideoDownloader } from './utils.js';
 import { createMainWindow } from './createWindows.js';
 import { setupIpcHandlers } from './ipcEventHandler.js';
 import { restoreBiliLoginFromStorage } from './bilibiliAuthService.js';
 import { createAppTray, destroyTray, getIsQuitting, showMainWindow } from './tray.js';
+
+app.setName(APP_NAME);
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_USER_MODEL_ID);
+}
 
 // 单实例锁：防止后台运行时多开
 const gotTheLock = app.requestSingleInstanceLock();

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { FaFolder, FaSignOutAlt } from 'react-icons/fa';
 import { IoCopy, IoDiamondOutline } from 'react-icons/io5';
 import { VscTools } from 'react-icons/vsc';
@@ -30,6 +31,11 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
     systemNotification,
     userInfo,
   } = useSettingsPanel(visible, setMainPageStatus);
+
+  const availableQualityOptions = useMemo(
+    () => VIDEO_QUALITY_OPTIONS.filter((item) => userInfo.vip || !item.vip),
+    [userInfo.vip],
+  );
 
   if (!visible) {
     return null;
@@ -65,26 +71,20 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
           <section className="settings-section">
             <h2>清晰度</h2>
             <div className="quality-grid">
-              {VIDEO_QUALITY_OPTIONS.map((item) => {
-                if (!userInfo.vip && item.vip) {
-                  return null;
-                }
-
-                return (
-                  <label
-                    className={selectedQuality === item.qn ? 'quality-option is-selected' : 'quality-option'}
-                    key={item.qn}
-                  >
-                    <input
-                      checked={selectedQuality === item.qn}
-                      onChange={() => setSelectedQuality(item.qn)}
-                      type="checkbox"
-                    />
-                    <span>{item.text}</span>
-                    {item.vip && <IoDiamondOutline className="vip-icon" />}
-                  </label>
-                );
-              })}
+              {availableQualityOptions.map((item) => (
+                <label
+                  className={selectedQuality === item.qn ? 'quality-option is-selected' : 'quality-option'}
+                  key={item.qn}
+                >
+                  <input
+                    checked={selectedQuality === item.qn}
+                    onChange={() => setSelectedQuality(item.qn)}
+                    type="checkbox"
+                  />
+                  <span>{item.text}</span>
+                  {item.vip && <IoDiamondOutline className="vip-icon" />}
+                </label>
+              ))}
             </div>
           </section>
 

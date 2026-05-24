@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { validateShareLink } from "../utils/shareLinkValidator";
+import { fetchCachedCollection } from "../stores/videoInfoCache";
 
 type AlertHandler = (message: string) => void;
 
@@ -25,7 +26,7 @@ export function useCollection(showAlert: AlertHandler) {
     const bvid = validation.id as string;
     setIsLoading(true);
     try {
-      const result = await window.electron.fetchCollection(bvid);
+      const result = await fetchCachedCollection(bvid);
       if (!result || result.videos.length === 0) {
         showAlert("当前视频并不存在于任何合集中");
         setCollectionData(null);

@@ -8,6 +8,7 @@ import { RiBilibiliFill } from 'react-icons/ri';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import { BiCameraMovie } from 'react-icons/bi';
 import { TbMathFunction } from 'react-icons/tb';
+import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
 
 type FloatingActionsProps = {
   shareLinkType: ShareLinkType;
@@ -43,9 +44,10 @@ function FloatingActions({
   open,
 }: FloatingActionsProps) {
   const actionsRef = useRef<HTMLDivElement>(null);
+  const { isBackgroundMode } = useAppRuntimeStore();
 
   useEffect(() => {
-    if (!open) {
+    if (!open || isBackgroundMode) {
       return;
     }
 
@@ -60,7 +62,7 @@ function FloatingActions({
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
-  }, [onClose, open]);
+  }, [isBackgroundMode, onClose, open]);
 
   const closeAfterAction = (action: () => void) => {
     action();

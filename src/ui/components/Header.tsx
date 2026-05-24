@@ -38,18 +38,20 @@ const Header = ({ isActive }: { isActive: boolean }) => {
         />
         <button
           aria-label="maximize"
+          disabled
           id="maximize"
-          onClick={() => window.electron.sendFrameAction('MAXIMIZE')}
+          title="已禁用最大化"
           type="button"
         />
       </div>
 
       <div className="titlebar-status" aria-label={isActive ? '已登录' : '未登录'}>
-        <span
-          className="titlebar-status__light"
-          id="breathlight"
-          style={{ visibility: isActive ? 'visible' : 'hidden' }}
-        />
+        {isActive && (
+          <span
+            className="titlebar-status__light"
+            id="breathlight"
+          />
+        )}
       </div>
     </header>
   );

@@ -14,8 +14,12 @@ let nextId = 1;
 let isProcessing = false;
 let currentAbortController: AbortController | null = null;
 
+function canNotifyRenderer(win: BrowserWindow) {
+  return !win.isDestroyed() && win.isVisible() && !win.webContents.isDestroyed();
+}
+
 function notifyQueue(win: BrowserWindow) {
-  if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+  if (canNotifyRenderer(win)) {
     win.webContents.send("queue-updated", [...queue]);
   }
 
@@ -217,7 +221,7 @@ async function processQueue(win: BrowserWindow) {
       task.status = "completed";
       task.progress = 100;
       notifyQueue(win);
-      if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+      if (canNotifyRenderer(win)) {
         win.webContents.send("download-complete", finalPath);
       }
     }
@@ -233,7 +237,7 @@ async function processQueue(win: BrowserWindow) {
           ? `下载停滞，准备第 ${currentRetry} 次重试`
           : `第 ${currentRetry} 次重试: ${(err as Error).message}`;
         notifyQueue(win);
-        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+        if (canNotifyRenderer(win)) {
           win.webContents.send("download-error", task.errorMessage);
         }
       } else {
@@ -244,7 +248,7 @@ async function processQueue(win: BrowserWindow) {
           task.errorMessage = `已重试 ${currentRetry - 1} 次仍失败: ${(err as Error).message}`;
         }
         notifyQueue(win);
-        if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+        if (canNotifyRenderer(win)) {
           win.webContents.send("download-error", "下载失败: " + (task.errorMessage ?? ""));
         }
       }

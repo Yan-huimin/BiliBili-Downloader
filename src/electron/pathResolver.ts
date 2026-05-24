@@ -63,3 +63,13 @@ export function getCookiesPath() {
 export function getSettingsPath() {
     return path.join(app.getPath('userData'), 'Settings.json');
 }
+
+/**
+ * 获取应用图标路径，用于窗口、托盘和系统通知。
+ * @returns icon.ico 的绝对路径。
+ */
+export function getAppIconPath() {
+    return isDev()
+      ? path.join(app.getAppPath(), "src/ui/assets/icon.ico")
+      : path.join(process.resourcesPath, "icon.ico");
+}

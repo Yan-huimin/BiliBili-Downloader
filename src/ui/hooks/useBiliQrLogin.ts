@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
+import { invalidateCachedUserInfo } from '../stores/settingsStore';
 
 const QR_POLL_INTERVAL_MS = 2000;
 
@@ -35,6 +37,7 @@ export function useBiliQrLogin({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onCloseRef = useRef(onClose);
   const onLoginSuccessRef = useRef(onLoginSuccess);
+  const { isBackgroundMode } = useAppRuntimeStore();
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -62,6 +65,7 @@ export function useBiliQrLogin({
       case QR_LOGIN_CODE.SUCCESS:
         setStatus(QR_STATUS_TEXT.success);
         clearPolling();
+        invalidateCachedUserInfo();
         onLoginSuccessRef.current();
         onCloseRef.current();
         break;
@@ -110,7 +114,7 @@ export function useBiliQrLogin({
   }, [clearPolling, pollStatus]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || isBackgroundMode) {
       clearPolling();
       setQrUrl('');
       setStatus(QR_STATUS_TEXT.idle);
@@ -122,7 +126,7 @@ export function useBiliQrLogin({
     return () => {
       clearPolling();
     };
-  }, [clearPolling, enabled, refreshQrCode]);
+  }, [clearPolling, enabled, isBackgroundMode, refreshQrCode]);
 
   return {
     qrUrl,

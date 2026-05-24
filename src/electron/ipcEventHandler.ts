@@ -1,5 +1,6 @@
 import { BrowserWindow, Notification, ipcMain, shell } from "electron";
 import fs from "fs";
+import { APP_NAME } from "./appIdentity.js";
 import {
   checkBiliLogin,
   getBiliUserInfo,
@@ -18,7 +19,7 @@ import {
   removeTask,
 } from "./downloadQueue.js";
 import { IpcMainHandle, IpcMainOn } from "./ipcTools.js";
-import { getDefaultVideoPath, getSettingsPath } from "./pathResolver.js";
+import { getAppIconPath, getDefaultVideoPath, getSettingsPath } from "./pathResolver.js";
 import {
   ensureExistSettingsFile,
   extractBV,
@@ -54,7 +55,8 @@ export function setupIpcHandlers(win: BrowserWindow) {
         win.close();
         break;
       case "MAXIMIZE":
-        win.maximize();
+        win.unmaximize();
+        win.setFullScreen(false);
         break;
       case "MINIMIZE":
         win.minimize();
@@ -94,8 +96,9 @@ export function setupIpcHandlers(win: BrowserWindow) {
 
   IpcMainOn("sendSuccessInfo", (payload: downloadSuccess) => {
     const notification = new Notification({
-      title: payload.types,
-      body: payload.message,
+      title: APP_NAME,
+      body: `${payload.types}\n${payload.message}`,
+      icon: getAppIconPath(),
     });
 
     notification.show();
