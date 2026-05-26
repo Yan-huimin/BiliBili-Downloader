@@ -385,8 +385,9 @@
 
 .queue-item__cancel {
   align-items: center;
-  background: color-mix(in srgb, var(--button-bg) 76%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  --control-fill: color-mix(in srgb, var(--button-bg) 76%, transparent);
+  --control-fill-hover: color-mix(in srgb, rgba(255, 95, 87, 0.24) 58%, var(--button-hover));
+  --control-radius: 6px;
   border-radius: 6px;
   color: var(--muted);
   cursor: pointer;
@@ -400,14 +401,14 @@
 }
 
 .queue-item__cancel:hover {
-  background: rgba(255, 95, 87, 0.14);
   color: var(--accent-strong);
 }
 
 .queue-item__retry {
   align-items: center;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  --control-fill: color-mix(in srgb, var(--accent) 18%, transparent);
+  --control-fill-hover: color-mix(in srgb, var(--accent) 28%, transparent);
+  --control-radius: 6px;
   border-radius: 6px;
   color: var(--accent);
   cursor: pointer;
@@ -422,7 +423,6 @@
 }
 
 .queue-item__retry:hover {
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text-strong);
 }
 
@@ -453,18 +453,19 @@
 }
 
 .modal-button--muted {
-  background: var(--button-bg);
+  --control-fill: var(--button-bg);
+  --control-fill-hover: var(--button-hover);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
 .modal-button--muted:hover {
-  background: var(--button-hover);
   box-shadow: 0 10px 22px rgba(40, 55, 78, 0.12);
 }
 
 .modal-button--success {
-  background: var(--accent-green);
+  --control-fill: color-mix(in srgb, var(--accent-green) 62%, rgba(255, 255, 255, 0.2));
+  --control-fill-hover: color-mix(in srgb, var(--accent-green) 72%, rgba(255, 255, 255, 0.22));
   border: 1px solid color-mix(in srgb, var(--accent-green) 72%, transparent);
   color: white;
 }

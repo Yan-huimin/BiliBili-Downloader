@@ -19,14 +19,29 @@
 }
 
 .traffic-lights button {
-  border: 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
+  box-shadow:
+    inset 1px -1px 1px rgba(255, 255, 255, 0.72),
+    inset -1px 1px 1px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(31, 41, 55, 0.16);
   cursor: pointer;
   height: 13px;
   outline: none;
   padding: 0;
+  position: relative;
   width: 13px;
   -webkit-app-region: no-drag;
+}
+
+.traffic-lights button::after {
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.72), transparent 42%, transparent 58%, rgba(255, 255, 255, 0.58));
+  border-radius: inherit;
+  content: '';
+  filter: blur(1px);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
 .titlebar-status {

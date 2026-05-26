@@ -15,26 +15,33 @@
   --accent: #007aff;
   --accent-strong: #ff5f8f;
   --accent-green: #20b486;
-  --bg-1: #edf3f8;
-  --bg-2: #f8fbff;
-  --bg-3: #dce8f0;
+  --bg-1: #f3f3f3;
+  --bg-2: #fafafa;
+  --bg-3: #e8edf2;
   --border: rgba(255, 255, 255, 0.62);
   --button-bg: rgba(255, 255, 255, 0.62);
   --button-hover: rgba(255, 255, 255, 0.82);
+  --control-edge: rgba(36, 45, 60, 0.18);
+  --control-fill: rgba(255, 255, 255, 0.34);
+  --control-fill-hover: rgba(255, 255, 255, 0.5);
+  --control-glint: rgba(255, 255, 255, 0.86);
+  --control-inner-shadow: rgba(16, 24, 40, 0.38);
+  --control-shadow: rgba(31, 41, 55, 0.18);
+  --control-trim: 28%;
   --glass: rgba(255, 255, 255, 0.48);
   --glass-strong: rgba(255, 255, 255, 0.68);
-  --grid-line: rgba(82, 109, 144, 0.16);
+  --grid-line: rgba(110, 119, 132, 0.16);
   --input-bg: rgba(255, 255, 255, 0.58);
   --muted: #687386;
   --shadow: 0 22px 48px rgba(48, 65, 92, 0.18);
   --text: #1f2733;
   --text-strong: #111827;
   background:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(135deg, rgba(0, 122, 255, 0.16), rgba(255, 95, 143, 0.11) 46%, rgba(32, 180, 134, 0.14)),
-    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
-  background-size: 32px 32px, 32px 32px, auto, auto;
+    linear-gradient(0deg, transparent 24%, var(--grid-line) 25%, var(--grid-line) 26%, transparent 27%, transparent 74%, var(--grid-line) 75%, var(--grid-line) 76%, transparent 77%, transparent),
+    linear-gradient(90deg, transparent 24%, var(--grid-line) 25%, var(--grid-line) 26%, transparent 27%, transparent 74%, var(--grid-line) 75%, var(--grid-line) 76%, transparent 77%, transparent),
+    linear-gradient(135deg, rgba(0, 122, 255, 0.13), rgba(255, 95, 143, 0.08) 48%, rgba(32, 180, 134, 0.11)),
+    linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 50%, var(--bg-3) 100%);
+  background-size: 55px 55px, 55px 55px, auto, auto;
   color: var(--text);
   height: 100vh;
   overflow: hidden;
@@ -52,6 +59,12 @@
   --border: rgba(255, 255, 255, 0.15);
   --button-bg: rgba(255, 255, 255, 0.1);
   --button-hover: rgba(255, 255, 255, 0.17);
+  --control-edge: rgba(255, 255, 255, 0.13);
+  --control-fill: rgba(255, 255, 255, 0.08);
+  --control-fill-hover: rgba(255, 255, 255, 0.14);
+  --control-glint: rgba(255, 255, 255, 0.52);
+  --control-inner-shadow: rgba(0, 0, 0, 0.78);
+  --control-shadow: rgba(0, 0, 0, 0.4);
   --glass: rgba(30, 31, 36, 0.58);
   --glass-strong: rgba(41, 42, 48, 0.74);
   --grid-line: rgba(255, 255, 255, 0.1);
@@ -61,11 +74,11 @@
   --text: #edf2f7;
   --text-strong: #ffffff;
   background:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(135deg, rgba(111, 183, 255, 0.2), rgba(255, 123, 166, 0.13) 46%, rgba(97, 215, 175, 0.13)),
+    linear-gradient(0deg, transparent 24%, var(--grid-line) 25%, var(--grid-line) 26%, transparent 27%, transparent 74%, var(--grid-line) 75%, var(--grid-line) 76%, transparent 77%, transparent),
+    linear-gradient(90deg, transparent 24%, var(--grid-line) 25%, var(--grid-line) 26%, transparent 27%, transparent 74%, var(--grid-line) 75%, var(--grid-line) 76%, transparent 77%, transparent),
+    linear-gradient(135deg, rgba(111, 183, 255, 0.18), rgba(255, 123, 166, 0.1) 48%, rgba(97, 215, 175, 0.11)),
     linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 52%, var(--bg-3) 100%);
-  background-size: 32px 32px, 32px 32px, auto, auto;
+  background-size: 55px 55px, 55px 55px, auto, auto;
 }
 
 .app-shell::after {
@@ -93,7 +106,10 @@
   background: linear-gradient(180deg, var(--glass-strong), var(--glass));
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: var(--shadow);
+  box-shadow:
+    inset 1px 1px 1px rgba(255, 255, 255, 0.4),
+    inset -1px -1px 1px rgba(255, 255, 255, 0.12),
+    var(--shadow);
 }
 
 .download-panel {
@@ -113,8 +129,10 @@
 
 .app-brand__icon {
   align-items: center;
+  --control-fill: rgba(255, 255, 255, 0.32);
+  --control-radius: 8px;
+  --control-trim: 24%;
   background: linear-gradient(145deg, rgba(0, 122, 255, 0.18), rgba(255, 95, 143, 0.2));
-  border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--accent);
   display: flex;
@@ -199,16 +217,180 @@
 .floating-actions__trigger,
 .floating-actions__item {
   align-items: center;
-  backdrop-filter: blur(18px) saturate(145%);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
-  background: var(--button-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
   color: var(--text);
   cursor: pointer;
   display: flex;
   justify-content: center;
-  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.app-shell :is(
+  .app-brand__icon,
+  .icon-button,
+  .floating-actions__trigger,
+  .floating-actions__item,
+  .download-button,
+  .modal-button,
+  .settings-user__logout,
+  .path-row button,
+  .settings-action-btn,
+  .queue-item__cancel,
+  .queue-item__retry
+) {
+  --control-radius: 8px;
+  --control-stroke: color-mix(in srgb, var(--control-edge) 78%, rgba(255, 255, 255, 0.68));
+  backdrop-filter: blur(12px) saturate(155%);
+  -webkit-backdrop-filter: blur(12px) saturate(155%);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--control-fill) 88%, rgba(255, 255, 255, 0.42)), color-mix(in srgb, var(--control-fill) 66%, transparent)),
+    rgba(255, 255, 255, 0.04);
+  border: 1px double var(--control-stroke);
+  border-radius: var(--control-radius);
+  box-shadow:
+    inset 2px -2px 1px -1px rgba(255, 255, 255, 0.82),
+    inset -2px 2px 1px -1px rgba(255, 255, 255, 0.64),
+    inset 6px -6px 1px -6px rgba(255, 255, 255, 0.5),
+    inset -6px 6px 1px -6px rgba(255, 255, 255, 0.36),
+    inset 0 0 2px var(--control-inner-shadow),
+    0 9px 18px var(--control-shadow);
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+  transition:
+    background 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.app-shell :is(
+  .app-brand__icon,
+  .icon-button,
+  .floating-actions__trigger,
+  .floating-actions__item,
+  .download-button,
+  .modal-button,
+  .settings-user__logout,
+  .path-row button,
+  .settings-action-btn,
+  .queue-item__cancel,
+  .queue-item__retry
+)::before {
+  border: 1px solid color-mix(in srgb, var(--control-inner-shadow) 72%, transparent);
+  border-radius: inherit;
+  content: '';
+  filter: blur(7px);
+  height: calc(100% - 12px);
+  left: 6px;
+  opacity: 0.42;
+  pointer-events: none;
+  position: absolute;
+  right: 6px;
+  top: 35%;
+  z-index: -1;
+}
+
+.app-shell :is(
+  .app-brand__icon,
+  .icon-button,
+  .floating-actions__trigger,
+  .floating-actions__item,
+  .download-button,
+  .modal-button,
+  .settings-user__logout,
+  .path-row button,
+  .settings-action-btn,
+  .queue-item__cancel,
+  .queue-item__retry
+)::after {
+  background: linear-gradient(
+    45deg,
+    var(--control-glint) 0%,
+    transparent var(--control-trim),
+    transparent calc(100% - var(--control-trim)),
+    var(--control-glint) 100%
+  );
+  border-radius: inherit;
+  content: '';
+  filter: blur(2px);
+  inset: 0;
+  opacity: 0.76;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.app-shell :is(
+  .app-brand__icon,
+  .icon-button,
+  .floating-actions__trigger,
+  .floating-actions__item,
+  .download-button,
+  .modal-button,
+  .settings-user__logout,
+  .path-row button,
+  .settings-action-btn,
+  .queue-item__cancel,
+  .queue-item__retry
+) > * {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell :is(
+  .icon-button,
+  .floating-actions__trigger,
+  .floating-actions__item,
+  .modal-button,
+  .settings-user__logout,
+  .path-row button,
+  .settings-action-btn,
+  .queue-item__cancel,
+  .queue-item__retry
+):hover:not(:disabled) {
+  --control-fill: var(--control-fill-hover);
+  box-shadow:
+    inset 2px -2px 1px -1px rgba(255, 255, 255, 0.9),
+    inset -2px 2px 1px -1px rgba(255, 255, 255, 0.72),
+    inset 0 0 2px var(--control-inner-shadow),
+    0 13px 26px color-mix(in srgb, var(--control-shadow) 78%, var(--accent) 16%);
+  transform: translateY(-1px);
+}
+
+.app-shell :is(
+  .icon-button,
+  .floating-actions__trigger,
+  .floating-actions__item,
+  .download-button,
+  .modal-button,
+  .settings-user__logout,
+  .path-row button,
+  .settings-action-btn,
+  .queue-item__cancel,
+  .queue-item__retry
+):focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 70%, transparent);
+  outline-offset: 3px;
+}
+
+.app-shell .modal-button--primary {
+  --control-fill: color-mix(in srgb, var(--accent) 62%, rgba(255, 255, 255, 0.2));
+  --control-fill-hover: color-mix(in srgb, var(--accent) 72%, rgba(255, 255, 255, 0.22));
+}
+
+.app-shell .modal-button--danger {
+  --control-fill: color-mix(in srgb, var(--accent-strong) 62%, rgba(255, 255, 255, 0.2));
+  --control-fill-hover: color-mix(in srgb, var(--accent-strong) 72%, rgba(255, 255, 255, 0.22));
+}
+
+.app-shell .modal-button--success {
+  --control-fill: color-mix(in srgb, var(--accent-green) 62%, rgba(255, 255, 255, 0.2));
+  --control-fill-hover: color-mix(in srgb, var(--accent-green) 72%, rgba(255, 255, 255, 0.22));
+}
+
+.app-shell .modal-button--muted {
+  --control-fill: var(--button-bg);
+  --control-fill-hover: var(--button-hover);
 }
 
 .icon-button {
@@ -220,8 +402,6 @@
 .icon-button:hover,
 .floating-actions__trigger:hover,
 .floating-actions__item:hover {
-  background: var(--button-hover);
-  box-shadow: 0 10px 22px rgba(40, 55, 78, 0.16);
   transform: translateY(-1px);
 }
 
@@ -260,14 +440,11 @@
 
 .download-button {
   align-items: center;
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  background:
-    linear-gradient(100deg, color-mix(in srgb, var(--accent) 84%, transparent), color-mix(in srgb, var(--accent-strong) 78%, transparent) 58%, color-mix(in srgb, var(--accent-green) 80%, transparent)),
-    rgba(255, 255, 255, 0.12);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
-  border-radius: 8px;
-  color: white;
+  --control-fill: rgba(255, 255, 255, 0.4);
+  --control-fill-hover: color-mix(in srgb, rgba(255, 255, 255, 0.56) 82%, var(--accent) 18%);
+  --control-radius: 999px;
+  --control-trim: 16%;
+  color: var(--text-strong);
   cursor: pointer;
   display: flex;
   font-size: 15px;
@@ -281,7 +458,13 @@
 }
 
 .download-button:hover:not(:disabled) {
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 28%, transparent);
+  --control-fill: var(--control-fill-hover);
+  box-shadow:
+    inset 2px -2px 1px -1px rgba(255, 255, 255, 0.92),
+    inset -2px 2px 1px -1px rgba(255, 255, 255, 0.72),
+    inset 0 0 2px rgba(0, 0, 0, 0.58),
+    0 16px 30px color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text-strong);
   filter: saturate(1.08);
   transform: translateY(-1px);
 }
