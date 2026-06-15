@@ -10,6 +10,8 @@ app.setName(APP_NAME);
 
 if (process.platform === 'win32') {
   app.setAppUserModelId(APP_USER_MODEL_ID);
+  // 允许 Windows 在后台空闲时自动将进程置于效率模式（EcoQoS）
+  app.commandLine.appendSwitch('enable-features', 'UseEcoQoSForBackgroundProcess');
 }
 
 // 单实例锁：防止后台运行时多开

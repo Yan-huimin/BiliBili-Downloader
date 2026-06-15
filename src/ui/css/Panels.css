@@ -452,6 +452,15 @@
   justify-content: center;
 }
 
+.panel-loading {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 12px;
+  justify-content: center;
+  padding: 12px 0;
+}
+
 .modal-button--muted {
   background: var(--button-bg);
   border: 1px solid var(--border);

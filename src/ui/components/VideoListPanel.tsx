@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useRef } from "react";
 import { formatDuration } from "../hooks/useDownloadQueue";
 import { useClickOutside } from "../hooks/useClickOutside";
 import "../css/Panels.css";
@@ -49,7 +49,7 @@ const VideoListItemRow = ({ item, index, checked, onToggle }: VideoListItemRowPr
 
 interface VideoListPanelProps {
   visible: boolean;
-  title: string;
+  title: React.ReactNode;
   items: VideoListItem[];
   selectedKeys: Set<string>;
   onToggle: (key: string) => void;
@@ -57,6 +57,8 @@ interface VideoListPanelProps {
   onDeselectAll: () => void;
   onClose: () => void;
   onConfirm: () => void;
+  onScrollToBottom?: () => void;
+  isLoadingMore?: boolean;
 }
 
 function VideoListPanel({
@@ -69,8 +71,11 @@ function VideoListPanel({
   onDeselectAll,
   onClose,
   onConfirm,
+  onScrollToBottom,
+  isLoadingMore,
 }: VideoListPanelProps) {
   const modalRef = useClickOutside<HTMLDivElement>(visible, onClose);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const selectableKeys = useMemo(
     () => items.filter((i) => i.selectable).map((i) => i.key),
@@ -95,6 +100,14 @@ function VideoListPanel({
     return null;
   }
 
+  const handleScroll = () => {
+    if (!scrollRef.current || !onScrollToBottom) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+    if (scrollTop + clientHeight >= scrollHeight - 100) {
+      onScrollToBottom();
+    }
+  };
+
   const handleSelectAllToggle = () => {
     if (allSelected) {
       onDeselectAll();
@@ -111,7 +124,7 @@ function VideoListPanel({
           <span className="panel-header__count">({items.length})</span>
         </header>
 
-        <div className="panel-scroll">
+        <div className="panel-scroll" onScroll={handleScroll} ref={scrollRef}>
           {items.map((item, index) => (
             <VideoListItemRow
               checked={selectedKeys.has(item.key)}
@@ -121,6 +134,9 @@ function VideoListPanel({
               onToggle={onToggle}
             />
           ))}
+          {isLoadingMore && (
+            <div className="panel-loading">加载中...</div>
+          )}
         </div>
 
         <div className="modal-actions">

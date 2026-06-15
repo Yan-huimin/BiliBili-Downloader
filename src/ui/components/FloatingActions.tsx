@@ -5,6 +5,7 @@ import { FaClock } from 'react-icons/fa';
 import { LuListVideo } from 'react-icons/lu';
 import { MdOutlineVideoLibrary } from 'react-icons/md';
 import { RiBilibiliFill } from 'react-icons/ri';
+import { RiUserFollowLine } from 'react-icons/ri';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import { BiCameraMovie } from 'react-icons/bi';
 import { TbMathFunction } from 'react-icons/tb';
@@ -17,6 +18,7 @@ type FloatingActionsProps = {
   open: boolean;
   onOpenCollection: () => void;
   onOpenBangumi: () => void;
+  onOpenUserVideo: () => void;
   onOpenLogin: () => void;
   onOpenQueue: () => void;
   onOpenSettings: () => void;
@@ -35,6 +37,7 @@ function FloatingActions({
   onClose,
   onOpenBangumi,
   onOpenCollection,
+  onOpenUserVideo,
   onOpenLogin,
   onOpenQueue,
   onOpenSettings,
@@ -101,6 +104,17 @@ function FloatingActions({
                 type="button"
               >
                 <BiCameraMovie />
+              </button>
+            )}
+            {shareLinkType === 'space' && (
+              <button
+                aria-label="获取用户投稿"
+                className="floating-actions__item"
+                onClick={() => closeAfterAction(onOpenUserVideo)}
+                title="获取用户投稿"
+                type="button"
+              >
+                <RiUserFollowLine />
               </button>
             )}
             <button

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import AlertToast from './components/AlertToast';
 import DownloadPanel from './components/DownloadPanel';
 import DownloadQueue from './components/DownloadQueue';
@@ -10,12 +10,21 @@ import VideoListPanel from './components/VideoListPanel';
 import './css/App.css';
 import { useCollection } from './hooks/useCollection';
 import { useBangumi } from './hooks/useBangumi';
+import { useUserVideo } from './hooks/useUserVideo';
 import { useDownloadManager } from './hooks/useDownloadManager';
 import { useProductionGuards } from './hooks/useProductionGuards';
 import { useTransientAlert } from './hooks/useTransientAlert';
 import { getShareLinkType } from './utils/shareLinkValidator';
 import { useBackgroundMode } from './hooks/useBackgroundMode';
 import { useAppRuntimeStore } from './stores/useAppRuntimeStore';
+
+function parseDurationToSeconds(length: string): number {
+  const parts = length.split(':');
+  if (parts.length !== 2) return 0;
+  const minutes = Number(parts[0]) || 0;
+  const seconds = Number(parts[1]) || 0;
+  return minutes * 60 + seconds;
+}
 
 function getStatusBadge(episodeStatus: BangumiEpisodeStatus): VideoListItem['statusBadge'] {
   switch (episodeStatus) {
@@ -80,11 +89,31 @@ function App() {
     confirmDownload: confirmBangumiDownload,
   } = useBangumi(showAlertMessage);
 
+  const {
+    userVideoData,
+    selectedBvids: selectedUserBvids,
+    isLoadingMore: userVideoLoadingMore,
+    hasMore: userVideoHasMore,
+    loadMore: loadMoreUserVideos,
+    fetchAndShowUserVideo,
+    toggleVideoSelection,
+    selectAll: selectAllUserVideos,
+    deselectAll: deselectAllUserVideos,
+    closeUserVideo,
+    confirmDownload: confirmUserVideoDownload,
+  } = useUserVideo(showAlertMessage);
+
+  const handleUserVideoScrollToBottom = () => {
+    if (userVideoHasMore && !userVideoLoadingMore) {
+      loadMoreUserVideos();
+    }
+  };
+
   const shareLinkType = getShareLinkType(shareLink);
 
   // 当前活跃面板
-  const activePanel: 'collection' | 'bangumi' | null =
-    collectionData ? 'collection' : bangumiData ? 'bangumi' : null;
+  const activePanel: 'collection' | 'bangumi' | 'userVideo' | null =
+    collectionData ? 'collection' : bangumiData ? 'bangumi' : userVideoData ? 'userVideo' : null;
 
   // 将活跃数据转换为 VideoListItem[]
   const videoListItems = useMemo<VideoListItem[]>(() => {
@@ -106,32 +135,76 @@ function App() {
         statusBadge: getStatusBadge(ep.episodeStatus),
       }));
     }
+    if (activePanel === 'userVideo' && userVideoData) {
+      return userVideoData.videos.map((v) => ({
+        key: v.bvid,
+        title: v.title,
+        duration: parseDurationToSeconds(v.length),
+        selectable: true,
+        subtitle: v.author,
+      }));
+    }
     return [];
-  }, [activePanel, collectionData, bangumiData]);
+  }, [activePanel, collectionData, bangumiData, userVideoData]);
 
   // 面板标题
-  const videoListTitle = activePanel === 'collection'
-    ? collectionData?.title ?? ''
-    : bangumiData?.title ?? '';
+  const videoListTitle: React.ReactNode =
+    activePanel === 'collection'
+      ? collectionData?.title ?? ''
+      : activePanel === 'bangumi'
+        ? bangumiData?.title ?? ''
+        : userVideoData ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img
+                alt={userVideoData.userInfo.name}
+                height={32}
+                src={userVideoData.userInfo.face}
+                style={{ borderRadius: '50%' }}
+                width={32}
+              />
+              <span>{userVideoData.userInfo.name}</span>
+              <span style={{ color: '#999', fontSize: 12 }}>
+                MID: {userVideoData.userInfo.mid}
+              </span>
+            </div>
+          ) : '';
 
   // 活跃的 selected keys
   const activeSelectedKeys =
-    activePanel === 'collection' ? selectedBvids : selectedEpIds;
+    activePanel === 'collection'
+      ? selectedBvids
+      : activePanel === 'bangumi'
+        ? selectedEpIds
+        : selectedUserBvids;
 
   // 活跃的 toggle
-  const handleToggle = activePanel === 'collection'
-    ? toggleBvidSelection
-    : toggleEpisodeSelection;
+  const handleToggle =
+    activePanel === 'collection'
+      ? toggleBvidSelection
+      : activePanel === 'bangumi'
+        ? toggleEpisodeSelection
+        : toggleVideoSelection;
 
-  const handleSelectAll = activePanel === 'collection'
-    ? selectAllBvids
-    : selectAllEps;
+  const handleSelectAll =
+    activePanel === 'collection'
+      ? selectAllBvids
+      : activePanel === 'bangumi'
+        ? selectAllEps
+        : selectAllUserVideos;
 
-  const handleDeselectAll = activePanel === 'collection'
-    ? deselectAllBvids
-    : deselectAllEps;
+  const handleDeselectAll =
+    activePanel === 'collection'
+      ? deselectAllBvids
+      : activePanel === 'bangumi'
+        ? deselectAllEps
+        : deselectAllUserVideos;
 
-  const handleClose = activePanel === 'collection' ? closeCollection : closeBangumi;
+  const handleClose =
+    activePanel === 'collection'
+      ? closeCollection
+      : activePanel === 'bangumi'
+        ? closeBangumi
+        : closeUserVideo;
 
   const handleConfirm = () => {
     if (activePanel === 'collection') {
@@ -141,6 +214,11 @@ function App() {
       }
     } else if (activePanel === 'bangumi') {
       const count = confirmBangumiDownload(savePath);
+      if (count > 0) {
+        showAlertMessage(`已添加 ${count} 个视频至下载队列`);
+      }
+    } else if (activePanel === 'userVideo') {
+      const count = confirmUserVideoDownload(savePath);
       if (count > 0) {
         showAlertMessage(`已添加 ${count} 个视频至下载队列`);
       }
@@ -155,6 +233,11 @@ function App() {
   const handleOpenBangumi = () => {
     setActionsOpen(false);
     fetchAndShowBangumi(shareLink);
+  };
+
+  const handleOpenUserVideo = () => {
+    setActionsOpen(false);
+    fetchAndShowUserVideo(shareLink);
   };
 
   const handleToggleOpen = () => {
@@ -191,6 +274,7 @@ function App() {
         onClose={handleCloseActions}
         onOpenBangumi={handleOpenBangumi}
         onOpenCollection={handleOpenCollection}
+        onOpenUserVideo={handleOpenUserVideo}
         onOpenLogin={() => setShowLogin((visible) => !visible)}
         onOpenQueue={() => {
           setActionsOpen(false);
@@ -205,10 +289,12 @@ function App() {
       />
 
       <VideoListPanel
+        isLoadingMore={activePanel === 'userVideo' ? userVideoLoadingMore : undefined}
         items={videoListItems}
         onClose={handleClose}
         onConfirm={handleConfirm}
         onDeselectAll={handleDeselectAll}
+        onScrollToBottom={activePanel === 'userVideo' ? handleUserVideoScrollToBottom : undefined}
         onSelectAll={handleSelectAll}
         onToggle={handleToggle}
         selectedKeys={activeSelectedKeys}

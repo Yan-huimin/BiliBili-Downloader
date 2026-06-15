@@ -72,3 +72,69 @@ export async function fetchCachedBangumiEpisodes(epId: number) {
   bangumiRequests.set(epId, request);
   return request;
 }
+
+const userVideoPageCache = new Map<string, CacheEntry<UserVideoPageResult>>();
+const userVideoPageRequests = new Map<string, Promise<UserVideoPageResult | null>>();
+const userCardCache = new Map<number, CacheEntry<UserCardInfo>>();
+const userCardRequests = new Map<number, Promise<UserCardInfo | null>>();
+
+function userVideoPageCacheKey(mid: number, pn: number, ps: number): string {
+  return `${mid}-${pn}-${ps}`;
+}
+
+export async function fetchCachedUserVideoPage(
+  mid: number,
+  pn: number,
+  ps: number
+): Promise<UserVideoPageResult | null> {
+  const cacheKey = userVideoPageCacheKey(mid, pn, ps);
+  const cached = getFreshCacheValue(userVideoPageCache, cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const pending = userVideoPageRequests.get(cacheKey);
+  if (pending) {
+    return pending;
+  }
+
+  const request = window.electron
+    .fetchUserVideoPage({ mid, pn, ps })
+    .then((result) => {
+      setCacheValue(userVideoPageCache, cacheKey, result);
+      return result;
+    })
+    .finally(() => {
+      userVideoPageRequests.delete(cacheKey);
+    });
+
+  userVideoPageRequests.set(cacheKey, request);
+  return request;
+}
+
+export async function fetchCachedUserCard(
+  mid: number
+): Promise<UserCardInfo | null> {
+  const cached = getFreshCacheValue(userCardCache, mid);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const pending = userCardRequests.get(mid);
+  if (pending) {
+    return pending;
+  }
+
+  const request = window.electron
+    .fetchUserCard(mid)
+    .then((result) => {
+      setCacheValue(userCardCache, mid, result);
+      return result;
+    })
+    .finally(() => {
+      userCardRequests.delete(mid);
+    });
+
+  userCardRequests.set(mid, request);
+  return request;
+}
