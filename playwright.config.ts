@@ -13,14 +13,16 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Run tests in files in parallel — Electron single-instance requires sequential */
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Only 1 worker — Electron's requestSingleInstanceLock prevents >1 instance */
+  workers: 1,
+  /* Global timeout — prevents hanging tests */
+  globalTimeout: 60_000,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -30,6 +32,8 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    /* Custom test-id attribute */
+    testIdAttribute: 'data-testid',
   },
 
   /* Configure projects for major browsers */
@@ -63,7 +67,11 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'npm run dev:react',
-    url: 'http://localhost:5123',
+    url: 'http://127.0.0.1:5123',
     reuseExistingServer: !process.env.CI,
+    env: {
+      NO_PROXY: 'localhost,127.0.0.1,::1',
+      no_proxy: 'localhost,127.0.0.1,::1',
+    },
   },
 });

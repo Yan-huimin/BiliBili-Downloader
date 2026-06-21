@@ -118,13 +118,13 @@ function VideoListPanel({
 
   return (
     <div className="modal-layer">
-      <div className="modal-panel collection-panel glass-panel" ref={modalRef}>
+      <div className="modal-panel collection-panel glass-panel" data-testid="videoListPanel" ref={modalRef}>
         <header className="panel-header">
           {title}
           <span className="panel-header__count">({items.length})</span>
         </header>
 
-        <div className="panel-scroll" onScroll={handleScroll} ref={scrollRef}>
+        <div className="panel-scroll" data-testid="videoList-scroll" onScroll={handleScroll} ref={scrollRef}>
           {items.map((item, index) => (
             <VideoListItemRow
               checked={selectedKeys.has(item.key)}
@@ -142,6 +142,7 @@ function VideoListPanel({
         <div className="modal-actions">
           <button
             className="modal-button modal-button--success"
+            data-testid="videoList-confirm"
             disabled={selectedCount === 0}
             onClick={onConfirm}
             type="button"
@@ -154,6 +155,7 @@ function VideoListPanel({
                 ? "modal-button modal-button--danger"
                 : "modal-button modal-button--primary"
             }
+            data-testid="videoList-selectAll"
             onClick={handleSelectAllToggle}
             type="button"
           >
@@ -161,6 +163,7 @@ function VideoListPanel({
           </button>
           <button
             className="modal-button modal-button--muted"
+            data-testid="videoList-close"
             onClick={onClose}
             type="button"
           >

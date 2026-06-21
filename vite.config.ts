@@ -13,6 +13,7 @@ export default defineConfig({
     outDir: 'dist-react',
   },
   server: {
+    host: '127.0.0.1',
     port: 5123, // 这个端口可以自定义
     strictPort: true
   },
