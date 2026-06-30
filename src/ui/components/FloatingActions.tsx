@@ -5,6 +5,7 @@ import { FaClock } from 'react-icons/fa';
 import { LuListVideo } from 'react-icons/lu';
 import { MdOutlineVideoLibrary } from 'react-icons/md';
 import { RiBilibiliFill } from 'react-icons/ri';
+import { RiUserFollowLine } from 'react-icons/ri';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import { BiCameraMovie } from 'react-icons/bi';
 import { TbMathFunction } from 'react-icons/tb';
@@ -17,6 +18,7 @@ type FloatingActionsProps = {
   open: boolean;
   onOpenCollection: () => void;
   onOpenBangumi: () => void;
+  onOpenUserVideo: () => void;
   onOpenLogin: () => void;
   onOpenQueue: () => void;
   onOpenSettings: () => void;
@@ -35,6 +37,7 @@ function FloatingActions({
   onClose,
   onOpenBangumi,
   onOpenCollection,
+  onOpenUserVideo,
   onOpenLogin,
   onOpenQueue,
   onOpenSettings,
@@ -76,6 +79,7 @@ function FloatingActions({
           <motion.div
             animate={{ opacity: 1, y: 0, scale: 1 }}
             className="floating-actions__menu"
+            data-testid="floatingMenu"
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             initial={{ opacity: 0, y: 8, scale: 0.96 }}
             style={{ gridTemplateColumns: 'repeat(3, 38px)' }}
@@ -85,6 +89,7 @@ function FloatingActions({
               <button
                 aria-label="获取合集"
                 className="floating-actions__item"
+                data-testid="menu-collection"
                 onClick={() => closeAfterAction(onOpenCollection)}
                 title="获取合集"
                 type="button"
@@ -96,6 +101,7 @@ function FloatingActions({
               <button
                 aria-label="获取番剧"
                 className="floating-actions__item"
+                data-testid="menu-bangumi"
                 onClick={() => closeAfterAction(onOpenBangumi)}
                 title="获取番剧"
                 type="button"
@@ -103,9 +109,22 @@ function FloatingActions({
                 <BiCameraMovie />
               </button>
             )}
+            {shareLinkType === 'space' && (
+              <button
+                aria-label="获取用户投稿"
+                className="floating-actions__item"
+                data-testid="menu-uservideo"
+                onClick={() => closeAfterAction(onOpenUserVideo)}
+                title="获取用户投稿"
+                type="button"
+              >
+                <RiUserFollowLine />
+              </button>
+            )}
             <button
               aria-label="下载队列"
               className="floating-actions__item"
+              data-testid="menu-queue"
               onClick={() => closeAfterAction(onOpenQueue)}
               title="下载队列"
               type="button"
@@ -115,6 +134,7 @@ function FloatingActions({
             <button
               aria-label={isDarkTheme ? '切换到明亮主题' : '切换到暗黑主题'}
               className="floating-actions__item"
+              data-testid="menu-theme"
               onClick={() => closeAfterAction(onToggleTheme)}
               title={isDarkTheme ? '切换到明亮主题' : '切换到暗黑主题'}
               type="button"
@@ -124,6 +144,7 @@ function FloatingActions({
             <button
               aria-label="显示当前时间"
               className="floating-actions__item"
+              data-testid="menu-time"
               onClick={() => closeAfterAction(onShowCurrentTime)}
               title="当前时间"
               type="button"
@@ -133,6 +154,7 @@ function FloatingActions({
             <button
               aria-label={loginStatus ? '已登录' : '登录哔哩哔哩'}
               className="floating-actions__item"
+              data-testid="menu-login"
               onClick={() => closeAfterAction(loginStatus ? onAlreadyLoggedIn : onOpenLogin)}
               title={loginStatus ? '已登录' : '登录哔哩哔哩'}
               type="button"
@@ -142,6 +164,7 @@ function FloatingActions({
             <button
               aria-label="打开设置"
               className="floating-actions__item"
+              data-testid="menu-settings"
               onClick={() => closeAfterAction(onOpenSettings)}
               title="设置"
               type="button"

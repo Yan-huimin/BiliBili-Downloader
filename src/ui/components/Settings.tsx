@@ -43,7 +43,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
 
   return (
     <div className="modal-layer">
-      <div className="modal-panel settings-panel glass-panel" ref={modalRef}>
+      <div className="modal-panel settings-panel glass-panel" data-testid="settingsPanel" ref={modalRef}>
         <div className="settings-scroll custom-scrollbar">
           <header className="settings-user">
             <img
@@ -59,6 +59,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
               <button
                 aria-label="退出登录"
                 className="settings-user__logout"
+                data-testid="settings-logout"
                 onClick={handleLogout}
                 title="退出登录"
                 type="button"
@@ -90,7 +91,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
 
           <section className="settings-section">
             <h2>其他设置</h2>
-            <label className="settings-row">
+            <label className="settings-row" data-testid="settings-notification">
               <input
                 checked={systemNotification}
                 onChange={() => setSystemNotification(!systemNotification)}
@@ -98,7 +99,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
               />
               <span>系统通知</span>
             </label>
-            <label className="settings-row">
+            <label className="settings-row" data-testid="settings-firework">
               <input
                 checked={fireworkParticles}
                 onChange={() => setFireworkParticles(!fireworkParticles)}
@@ -112,6 +113,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
             <h2>开发者工具</h2>
             <button
               className="settings-action-btn"
+              data-testid="settings-devtools"
               onClick={() => window.electron.openDevTools()}
               type="button"
             >
@@ -123,7 +125,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
           <section className="settings-section">
             <h2>默认下载路径</h2>
             <div className="path-row">
-              <span className="path-row__value" title={defaultDownloadPath}>
+              <span className="path-row__value" data-testid="settings-path" title={defaultDownloadPath}>
                 {defaultDownloadPath}
               </span>
               <button aria-label="选择文件夹" onClick={handleFolderSelect} title="选择文件夹" type="button">
@@ -144,6 +146,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
         <div className="modal-actions settings-actions">
           <button
             className="modal-button modal-button--primary"
+            data-testid="settings-save"
             onClick={() => {
               saveSettings();
               noticeSettingsSaved();
@@ -153,7 +156,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
           >
             保存配置
           </button>
-          <button className="modal-button modal-button--danger" onClick={onClose} type="button">
+          <button className="modal-button modal-button--danger" data-testid="settings-close" onClick={onClose} type="button">
             关闭
           </button>
         </div>

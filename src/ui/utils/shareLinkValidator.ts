@@ -15,6 +15,17 @@ export function extractEpId(url: string): number | null {
 }
 
 /**
+ * 从用户空间链接中提取 mid。
+ */
+export function extractMid(url: string): number | null {
+  const urlMatch = url.match(/space\.bilibili\.com\/(\d+)/);
+  if (urlMatch) return Number(urlMatch[1]);
+  const trimmed = url.trim();
+  if (/^\d+$/.test(trimmed)) return Number(trimmed);
+  return null;
+}
+
+/**
  * 判断分享链接的视频标识类型。
  */
 export function getShareLinkType(url: string): ShareLinkType {
@@ -24,6 +35,7 @@ export function getShareLinkType(url: string): ShareLinkType {
   if (hasBv && hasEp) return 'both';
   if (hasBv) return 'bv';
   if (hasEp) return 'ep';
+  if (extractMid(url) !== null) return 'space';
   return 'none';
 }
 
@@ -33,6 +45,7 @@ export function getShareLinkType(url: string): ShareLinkType {
 export function validateShareLink(url: string):
   | { valid: true; type: 'bv'; id: string }
   | { valid: true; type: 'ep'; id: number }
+  | { valid: true; type: 'space'; id: number }
   | { valid: false; error: string } {
   const type = getShareLinkType(url);
 
@@ -46,6 +59,10 @@ export function validateShareLink(url: string):
 
   if (type === 'ep') {
     return { valid: true, type: 'ep', id: extractEpId(url)! };
+  }
+
+  if (type === 'space') {
+    return { valid: true, type: 'space', id: extractMid(url)! };
   }
 
   return { valid: false, error: '无法识别分享链接中的视频标识' };

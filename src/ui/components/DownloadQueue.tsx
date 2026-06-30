@@ -29,7 +29,7 @@ function DownloadQueue({ visible, onClose }: DownloadQueueProps) {
 
   return (
     <div className="modal-layer">
-      <div className="modal-panel queue-panel glass-panel" ref={modalRef}>
+      <div className="modal-panel queue-panel glass-panel" data-testid="queuePanel" ref={modalRef}>
         <header className="panel-header">
           下载队列
           <span className="panel-header__count">{queue.length}</span>
@@ -37,7 +37,7 @@ function DownloadQueue({ visible, onClose }: DownloadQueueProps) {
 
         <div className="panel-scroll">
           {!hasItems ? (
-            <div className="panel-empty">当前并无下载视频</div>
+            <div className="panel-empty" data-testid="queue-empty">当前并无下载视频</div>
           ) : (
             queue.map((task) => (
               <QueueTaskItem
@@ -53,6 +53,7 @@ function DownloadQueue({ visible, onClose }: DownloadQueueProps) {
         <div className="modal-actions">
           <button
             className="modal-button modal-button--danger"
+            data-testid="queue-close"
             onClick={onClose}
             type="button"
           >
@@ -61,6 +62,7 @@ function DownloadQueue({ visible, onClose }: DownloadQueueProps) {
           <button
             className="modal-button modal-button--danger"
             disabled={!hasItems}
+            data-testid="queue-clear"
             onClick={handleClear}
             type="button"
           >

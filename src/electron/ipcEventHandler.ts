@@ -10,6 +10,7 @@ import {
 } from "./bilibiliAuthService.js";
 import { fetchBangumiEpisodes } from "./bangumiService.js";
 import { fetchCollection } from "./collectionService.js";
+import { fetchAllUserVideos, fetchUserVideoPage, fetchUserCard } from "./userVideoService.js";
 import {
   cancelDownload,
   clearQueue,
@@ -130,6 +131,18 @@ export function setupIpcHandlers(win: BrowserWindow) {
 
   ipcMain.handle("fetchBangumiEpisodes", async (_e, epId: number) => {
     return await fetchBangumiEpisodes(epId);
+  });
+
+  ipcMain.handle("fetchUserVideos", async (_e, mid: number) => {
+    return await fetchAllUserVideos(mid);
+  });
+
+  ipcMain.handle("fetchUserVideoPage", async (_e, req: UserVideoPageRequest) => {
+    return await fetchUserVideoPage(req.mid, req.pn, req.ps);
+  });
+
+  ipcMain.handle("fetchUserCard", async (_e, mid: number) => {
+    return await fetchUserCard(mid);
   });
 
   IpcMainOn("enqueueBulk", (tasks: DownloadTask[]) => {

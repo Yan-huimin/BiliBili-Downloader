@@ -49,6 +49,7 @@ const Header = ({ isActive }: { isActive: boolean }) => {
         {isActive && (
           <span
             className="titlebar-status__light"
+            data-testid="breathlight"
             id="breathlight"
           />
         )}

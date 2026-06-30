@@ -24,6 +24,9 @@ type EventPayloadMapping = {
     getQueue: DownloadTask[],
     dequeue: DownloadTask[],
     removeTask: number,
+    fetchUserVideos: number,
+    fetchUserVideoPage: UserVideoPageRequest,
+    fetchUserCard: number,
 }
 
 /* ******************************** */
@@ -80,8 +83,66 @@ type CollectionInfo = {
   videos: CollectionVideo[];
 };
 
+/* 用户视频 */
+type UserVideoItem = {
+  aid: number;
+  bvid: string;
+  title: string;
+  author: string;
+  mid: number;
+  pic: string;
+  play: number;
+  comment: number;
+  created: number;
+  description: string;
+  length: string;
+  typeid: number;
+};
+
+type UserCardInfo = {
+  name: string;
+  face: string;
+  mid: number;
+};
+
+type UserVideoListData = {
+  userInfo: UserCardInfo;
+  videos: UserVideoItem[];
+  totalCount: number;
+};
+
+type UserVideoPageResult = {
+  videos: UserVideoItem[];
+  page: {
+    pn: number;
+    ps: number;
+    count: number;
+  };
+};
+
+type UserVideoPageRequest = {
+  mid: number;
+  pn: number;
+  ps: number;
+};
+
+type UserVideoApiItem = {
+  aid: number;
+  bvid: string;
+  title: string;
+  author: string;
+  mid: number;
+  pic: string;
+  play: number;
+  comment: number;
+  created: number;
+  description: string;
+  length: string;
+  typeid: number;
+};
+
 /* 分享链接类型 */
-type ShareLinkType = 'bv' | 'ep' | 'both' | 'none';
+type ShareLinkType = 'bv' | 'ep' | 'both' | 'space' | 'none';
 
 /* 统一视频列表项 */
 type VideoListItem = {
@@ -157,6 +218,9 @@ interface Window{
         onQueueUpdated: (callback: (queue: DownloadTask[]) => void) => () => void;
         removeTask: (taskId: number) => void;
         onBackgroundModeChange: (callback: (isBackgroundMode: boolean) => void) => () => void;
+        fetchUserVideos: (mid: number) => Promise<UserVideoListData | null>;
+        fetchUserVideoPage: (req: UserVideoPageRequest) => Promise<UserVideoPageResult | null>;
+        fetchUserCard: (mid: number) => Promise<UserCardInfo | null>;
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;

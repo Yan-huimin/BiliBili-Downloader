@@ -139,6 +139,15 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("app:leave-background-mode", leaveListener);
     };
   },
+
+  fetchUserVideos: (mid: number) =>
+    ipcRenderer.invoke("fetchUserVideos", mid),
+
+  fetchUserVideoPage: (req: UserVideoPageRequest) =>
+    ipcRenderer.invoke("fetchUserVideoPage", req),
+
+  fetchUserCard: (mid: number) =>
+    ipcRenderer.invoke("fetchUserCard", mid),
 });
 
 contextBridge.exposeInMainWorld("biliApi", {
