@@ -1,0 +1,91 @@
+name: Build Desktop Apps
+
+on:
+  # 允许在 GitHub Actions 页面手动构建
+  workflow_dispatch:
+
+  # 推送 v 开头的标签时自动构建
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # 某个平台失败时，不取消其他平台
+      fail-fast: false
+
+      matrix:
+        include:
+          - name: Windows-x64
+            os: windows-latest
+            command: npx electron-builder --win --x64 --publish never
+            artifactPath: |
+              release/*.exe
+              release/*.blockmap
+              release/latest*.yml
+
+          - name: Linux-x64
+            os: ubuntu-latest
+            command: npx electron-builder --linux --x64 --publish never
+            artifactPath: |
+              release/*.AppImage
+              release/*.blockmap
+              release/latest-linux*.yml
+
+          - name: macOS-arm64
+            os: macos-15
+            command: npx electron-builder --mac --arm64 --publish never
+            artifactPath: |
+              release/*.dmg
+              release/*.blockmap
+              release/latest-mac*.yml
+
+          - name: macOS-x64
+            os: macos-15-intel
+            command: npx electron-builder --mac --x64 --publish never
+            artifactPath: |
+              release/*.dmg
+              release/*.blockmap
+              release/latest-mac*.yml
+
+    env:
+      # 当前先构建未签名版本，避免 electron-builder 自动查找证书
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify FFmpeg
+        run: node -e "const p = require('ffmpeg-static'); console.log('FFmpeg:', p); if (!p) process.exit(1)"
+
+      - name: Build application
+        run: npm run build
+
+      - name: Package application
+        run: ${{ matrix.command }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: BiliDownload-${{ matrix.name }}
+          path: ${{ matrix.artifactPath }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
