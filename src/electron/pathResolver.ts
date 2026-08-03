@@ -25,18 +25,27 @@ export function getPreloadPath(){
 }
 
 /**
- * 获取 ffmpeg 可执行文件的路径。
- * 开发模式下返回 npm 包中的 ffmpeg-static 路径，生产模式下返回打包后的 ffmpeg.exe 路径。
- * @returns ffmpeg 可执行文件的绝对路径。
+ * 获取 FFmpeg 可执行文件的绝对路径。
  */
-export function getFfmpegPath(){
-    return isDev() ? (ffmpegPath as unknown as string) : path.join(
-      process.resourcesPath,
-      "app.asar.unpacked",
-      "node_modules",
-      "ffmpeg-static",
-      "ffmpeg.exe"
-    );
+export function getFfmpegPath(): string {
+  if (isDev()) {
+    if (typeof ffmpegPath !== "string" || !ffmpegPath) {
+      throw new Error("ffmpeg-static 未返回有效路径");
+    }
+
+    return ffmpegPath;
+  }
+
+  const executableName =
+    process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
+
+  return path.join(
+    process.resourcesPath,
+    "app.asar.unpacked",
+    "node_modules",
+    "ffmpeg-static",
+    executableName,
+  );
 }
 
 /**
