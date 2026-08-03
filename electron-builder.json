@@ -19,15 +19,18 @@
     }
   ],
  "mac": {
-     "target": "dmg"
+     "target": "dmg",
+     "icon": "build/icon.png"
  },
  "linux": {
-     "target": "APPImage",
+     "target": "AppImage",
      "category": "Utility",
-     "maintainer": "Yan Huimin <yanhuimin434@gmail.com>"
+     "maintainer": "Yan Huimin <yanhuimin434@gmail.com>",
+     "icon": "build/icon.png"
  },
  "win": {
-     "target": ["portable", "nsis"]
+     "target": ["portable", "nsis"],
+     "icon": "build/icon.ico"
  },
  "nsis": {
     "oneClick": false,
