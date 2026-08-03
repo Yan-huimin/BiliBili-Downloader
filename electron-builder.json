@@ -1,6 +1,12 @@
 {
  "appId": "com.yhm.bili",
  "productName": "BiliDownload",
+
+  "directories": {
+    "output": "release",
+    "buildResources": "build"
+  },
+
  "files": [
     "dist-electron",
     "dist-react",
