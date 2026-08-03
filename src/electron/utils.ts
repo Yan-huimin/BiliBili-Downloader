@@ -11,16 +11,20 @@ import {
   saveCookies as saveStoredCookies,
 } from "./cookieStore.js";
 import fs from 'fs';
+import { access } from 'node:fs/promises';
 import path from "path";
 import os from 'os';
 import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
 import type { CookieJar } from "tough-cookie";
 import { spawn } from "child_process";
 import { pipeline } from "stream/promises";
+import { constants } from "node:fs";
+import { rm } from "node:fs/promises";
 
 const ffmpegPath = getFfmpegPath();
 const THREAD_COUNT = 4;
 const PROGRESS_EMIT_INTERVAL_MS = 250;
+const STDERR_LIMIT = 64 * 1024;
 
 let activeStreams: fs.WriteStream[] = [];
 let currentWriteStream: fs.WriteStream | null = null;
@@ -506,107 +510,169 @@ export async function mergeWithFfmpeg(
   audioPath: string,
   outputPath: string,
   signal?: AbortSignal,
-) {
+): Promise<void> {
+  // 必须在创建子进程之前检查。
+  if (signal?.aborted) {
+    throw new Error("ffmpeg 合并任务已取消");
+  }
+
+  const executablePath = getFfmpegPath();
+  const finalOutputPath = ensureMp4Path(outputPath);
+
+  // Windows 只检查文件存在性；
+  // Linux/macOS 同时检查执行权限。
+  await access(
+    executablePath,
+    process.platform === "win32"
+      ? constants.F_OK
+      : constants.X_OK,
+  ).catch(() => {
+    throw new Error(`未找到或无法执行 FFmpeg: ${executablePath}`);
+  });
+
+  const args = [
+    "-hide_banner",
+    "-loglevel", "error",
+    "-nostats",
+
+    "-y",
+    "-nostdin",
+
+    "-i", videoPath,
+    "-i", audioPath,
+
+    "-map", "0:v:0",
+    "-map", "1:a:0",
+
+    "-c:v", "copy",
+    "-c:a", "copy",
+
+    "-movflags", "+faststart",
+    "-f", "mp4",
+
+    finalOutputPath,
+  ];
+
   return new Promise<void>((resolve, reject) => {
-    if (!ffmpegPath) {
-      return reject(new Error("未找到 ffmpeg 可执行文件"));
-    }
-
-    const finalOutputPath = ensureMp4Path(outputPath);
-
-    let stderr = "";
+    let stderrTail = "";
     let aborted = false;
     let settled = false;
+    let forceKillTimer: NodeJS.Timeout | undefined;
 
-    const args = [
-      "-y",
-      "-nostdin",
-
-      "-i", videoPath,
-      "-i", audioPath,
-
-      "-map", "0:v:0",
-      "-map", "1:a:0",
-
-      "-c", "copy",
-      "-movflags", "+faststart",
-
-      "-f", "mp4",
-
-      finalOutputPath,
-    ];
-
-    const ff = spawn(ffmpegPath, args, {
+    const ff = spawn(executablePath, args, {
       shell: false,
       windowsHide: true,
+
+      // 不使用 stdin 和 stdout，只读取错误输出。
+      stdio: ["ignore", "ignore", "pipe"],
     });
 
-    const cleanupOutput = () => {
-      try {
-        if (fs.existsSync(finalOutputPath)) {
-          fs.unlinkSync(finalOutputPath);
-        }
-      } catch {
-        // Windows 下 ffmpeg 进程未完全退出时可能还占用文件，忽略即可
+    const cleanupListener = (): void => {
+      signal?.removeEventListener("abort", onAbort);
+
+      if (forceKillTimer) {
+        clearTimeout(forceKillTimer);
+        forceKillTimer = undefined;
       }
     };
 
-    const onAbort = () => {
+    const cleanupOutput = async (): Promise<void> => {
+      await rm(finalOutputPath, {
+        force: true,
+      }).catch(() => {
+        // 文件仍被系统短暂占用时忽略。
+      });
+    };
+
+    const rejectOnce = async (error: Error): Promise<void> => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanupListener();
+      await cleanupOutput();
+      reject(error);
+    };
+
+    const resolveOnce = (): void => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      cleanupListener();
+      resolve();
+    };
+
+    const onAbort = (): void => {
+      if (settled || aborted) {
+        return;
+      }
+
       aborted = true;
-      ff.kill("SIGKILL");
+
+      if (ff.exitCode !== null || ff.signalCode !== null) {
+        return;
+      }
+
+      // Linux/macOS 下先发送 SIGTERM，允许进程正常退出。
+      // Windows 下 Node.js 会直接终止该进程。
+      ff.kill("SIGTERM");
+
+      // 防止 Unix 平台上的进程忽略 SIGTERM。
+      forceKillTimer = setTimeout(() => {
+        if (ff.exitCode === null && ff.signalCode === null) {
+          ff.kill("SIGKILL");
+        }
+      }, 1500);
+
+      forceKillTimer.unref();
     };
 
-    if (signal) {
-      if (signal.aborted) {
-        cleanupOutput();
-        return reject(new Error("ffmpeg 合并任务已取消"));
-      }
-
-      signal.addEventListener("abort", onAbort, { once: true });
-    }
-
-    ff.stderr.on("data", (data) => {
-      const text = data.toString();
-      stderr += text;
-      console.log("ffmpeg:", text);
+    signal?.addEventListener("abort", onAbort, {
+      once: true,
     });
 
-    ff.on("error", (err) => {
-      if (settled) return;
-      settled = true;
-
-      signal?.removeEventListener("abort", onAbort);
-
-      if (aborted) {
-        cleanupOutput();
-        reject(new Error("ffmpeg 合并任务已取消"));
-      } else {
-        reject(err);
-      }
+    ff.stderr?.on("data", (data: Buffer) => {
+      // 只保留最后 64 KiB，不再无限增长。
+      stderrTail = (
+        stderrTail + data.toString("utf8")
+      ).slice(-STDERR_LIMIT);
     });
 
-    ff.on("close", (code) => {
-      if (settled) return;
-      settled = true;
+    ff.once("error", (error) => {
+      void rejectOnce(
+        aborted
+          ? new Error("ffmpeg 合并任务已取消")
+          : new Error(`无法启动 FFmpeg：${error.message}`),
+      );
+    });
 
-      signal?.removeEventListener("abort", onAbort);
-
+    ff.once("close", (code, terminationSignal) => {
       if (aborted) {
-        cleanupOutput();
-        reject(new Error("ffmpeg 合并任务已取消"));
+        void rejectOnce(
+          new Error("ffmpeg 合并任务已取消"),
+        );
         return;
       }
 
       if (code === 0) {
-        resolve();
-      } else {
-        cleanupOutput();
-        reject(
-          new Error(
-            `ffmpeg 合并失败，退出码: ${code}\n\n${stderr}`
-          )
-        );
+        resolveOnce();
+        return;
       }
+
+      const details = stderrTail.trim()
+        ? `\n\n${stderrTail.trim()}`
+        : "";
+
+      void rejectOnce(
+        new Error(
+          `ffmpeg 合并失败，退出码：${code ?? "unknown"}，` +
+          `终止信号：${terminationSignal ?? "none"}` +
+          details,
+        ),
+      );
     });
   });
 }
