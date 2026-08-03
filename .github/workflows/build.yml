@@ -6,6 +6,9 @@ on:
 
   # 推送 v 开头的标签时自动构建
   push:
+    branches:
+        - main
+        - feat/ffmpeg
     tags:
       - "v*"
 
