@@ -1,4 +1,4 @@
-import { BrowserWindow, Notification, ipcMain, shell } from "electron";
+import { BrowserWindow, Notification, clipboard, ipcMain, shell } from "electron";
 import fs from "fs";
 import { APP_NAME } from "./appIdentity.js";
 import {
@@ -10,6 +10,12 @@ import {
 } from "./bilibiliAuthService.js";
 import { fetchBangumiEpisodes } from "./bangumiService.js";
 import { fetchCollection } from "./collectionService.js";
+import {
+  addDownloadHistory,
+  clearDownloadHistory,
+  deleteDownloadHistory,
+  getDownloadHistory,
+} from "./historyService.js";
 import { fetchAllUserVideos, fetchUserVideoPage, fetchUserCard } from "./userVideoService.js";
 import {
   cancelDownload,
@@ -20,14 +26,14 @@ import {
   removeTask,
 } from "./downloadQueue.js";
 import { IpcMainHandle, IpcMainOn } from "./ipcTools.js";
-import { getAppIconPath, getDefaultVideoPath, getSettingsPath } from "./pathResolver.js";
+import { getAppIconPath, getDefaultVideoPath } from "./pathResolver.js";
 import {
-  ensureExistSettingsFile,
   extractBV,
   getCid,
   getPlayUrl,
   setSaveFolder,
 } from "./utils.js";
+import { loadSettings, saveSettings } from "./settingsService.js";
 
 /**
  * 注册 Bilibili 认证相关的 IPC handlers。
@@ -108,18 +114,11 @@ export function setupIpcHandlers(win: BrowserWindow) {
     }, 2500);
   });
 
-  IpcMainOn("setSettings", (payload: Settings) => {
-    ensureExistSettingsFile();
-    fs.writeFileSync(getSettingsPath(), JSON.stringify(payload, null, 2), "utf-8");
-  });
+  ipcMain.handle("setSettings", async (_event, payload: Settings) => saveSettings(payload));
 
   registerBiliAuthHandlers();
 
-  IpcMainHandle("loadSettings", async () => {
-    ensureExistSettingsFile();
-    const data = fs.readFileSync(getSettingsPath(), "utf-8");
-    return JSON.parse(data) as Settings;
-  });
+  IpcMainHandle("loadSettings", async () => loadSettings());
 
   IpcMainHandle("openDevTools", async () => {
     return openDeveloperTools(win);
@@ -167,6 +166,20 @@ export function setupIpcHandlers(win: BrowserWindow) {
 
   IpcMainHandle("getQueue", async () => {
     return getQueue();
+  });
+
+  ipcMain.handle("getDownloadHistory", async () => getDownloadHistory());
+  ipcMain.handle("addDownloadHistory", async (_event, payload: AddDownloadHistoryPayload) =>
+    addDownloadHistory(payload)
+  );
+  ipcMain.handle("deleteDownloadHistory", async (_event, id: string) =>
+    deleteDownloadHistory(id)
+  );
+  ipcMain.handle("clearDownloadHistory", async () => clearDownloadHistory());
+  ipcMain.handle("copyHistoryLink", async (_event, link: string) => {
+    if (!link.trim() || link.length > 4096) return false;
+    clipboard.writeText(link);
+    return true;
   });
 }
 

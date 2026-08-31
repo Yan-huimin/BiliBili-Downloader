@@ -3,7 +3,6 @@ import {
   setupSuite,
   teardownSuite,
   openFloatingMenu,
-  closeFloatingMenu,
   type E2eContext,
 } from './helpers';
 
@@ -14,7 +13,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await teardownSuite(ctx?.electronApp);
+  await teardownSuite(ctx?.electronApp, ctx?.userDataPath);
 });
 
 test.describe('Settings panel', () => {
@@ -45,6 +44,13 @@ test.describe('Settings panel', () => {
   test('notification and firework toggles are present', async () => {
     await expect(ctx.mainPage.getByTestId('settings-notification')).toBeVisible();
     await expect(ctx.mainPage.getByTestId('settings-firework')).toBeVisible();
+  });
+
+  test('close behavior choices are present', async () => {
+    const choices = ctx.mainPage.getByTestId('settings-close-behavior');
+    await expect(choices).toBeVisible();
+    await expect(choices.getByRole('radio', { name: '直接退出应用' })).toBeChecked();
+    await expect(choices.getByRole('radio', { name: '最小化到系统托盘' })).not.toBeChecked();
   });
 
   test('devtools button is present', async () => {

@@ -4,6 +4,7 @@ import { validateShareLink } from '../utils/shareLinkValidator';
 import { useAppRuntimeStore } from '../stores/useAppRuntimeStore';
 import { markQueueNeedsRefresh, setCachedQueue } from '../stores/queueStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { recordDownloadHistory } from '../utils/downloadHistory';
 
 type AlertHandler = (message: string) => void;
 
@@ -126,6 +127,12 @@ export function useDownloadManager(showAlertMessage: AlertHandler) {
       progress: 0,
       status: 'waiting',
       filePath: savePath,
+    });
+
+    void recordDownloadHistory({
+      bvid,
+      shareLink: shareLink.trim(),
+      type: 'video',
     });
 
     showAlertMessage('已添加到下载队列');

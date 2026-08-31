@@ -93,7 +93,7 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   setSettings: (payload: Settings) =>
-    ipcRenderer.send("setSettings", payload),
+    ipcRenderer.invoke("setSettings", payload),
 
   loadSettings: () => ipcRenderer.invoke("loadSettings"),
 
@@ -148,6 +148,21 @@ contextBridge.exposeInMainWorld("electron", {
 
   fetchUserCard: (mid: number) =>
     ipcRenderer.invoke("fetchUserCard", mid),
+
+  getDownloadHistory: () =>
+    ipcRenderer.invoke("getDownloadHistory"),
+
+  addDownloadHistory: (payload: AddDownloadHistoryPayload) =>
+    ipcRenderer.invoke("addDownloadHistory", payload),
+
+  deleteDownloadHistory: (id: string) =>
+    ipcRenderer.invoke("deleteDownloadHistory", id),
+
+  clearDownloadHistory: () =>
+    ipcRenderer.invoke("clearDownloadHistory"),
+
+  copyHistoryLink: (link: string) =>
+    ipcRenderer.invoke("copyHistoryLink", link),
 });
 
 contextBridge.exposeInMainWorld("biliApi", {

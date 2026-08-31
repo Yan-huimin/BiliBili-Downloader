@@ -1,7 +1,10 @@
 import path from 'path';
 import { app } from 'electron';
-import { isDev } from './utils.js';
 import ffmpegPath from 'ffmpeg-static';
+
+function isDev(): boolean {
+  return process.env.NODE_ENV === 'development';
+}
 
 /**
  * 获取 React 前端入口 HTML 文件的绝对路径。
@@ -71,6 +74,11 @@ export function getCookiesPath() {
  */
 export function getSettingsPath() {
     return path.join(app.getPath('userData'), 'Settings.json');
+}
+
+/** 获取下载历史记录持久化文件的路径。 */
+export function getDownloadHistoryPath() {
+    return path.join(app.getPath('userData'), 'downloadHistory.json');
 }
 
 /**

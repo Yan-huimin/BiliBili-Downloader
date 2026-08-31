@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import AlertToast from './components/AlertToast';
 import DownloadPanel from './components/DownloadPanel';
 import DownloadQueue from './components/DownloadQueue';
+import DownloadHistory from './components/DownloadHistory';
 import FloatingActions from './components/FloatingActions';
 import Header from './components/Header';
 import LoginBili from './components/LoginBili';
@@ -17,6 +18,7 @@ import { useTransientAlert } from './hooks/useTransientAlert';
 import { getShareLinkType } from './utils/shareLinkValidator';
 import { useBackgroundMode } from './hooks/useBackgroundMode';
 import { useAppRuntimeStore } from './stores/useAppRuntimeStore';
+import { recordDownloadHistory } from './utils/downloadHistory';
 
 function parseDurationToSeconds(length: string): number {
   const parts = length.split(':');
@@ -46,6 +48,7 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const { alertMessage, showAlert, showAlertMessage } = useTransientAlert();
 
@@ -210,16 +213,33 @@ function App() {
     if (activePanel === 'collection') {
       const count = confirmCollectionDownload(savePath);
       if (count > 0) {
+        void recordDownloadHistory({
+          shareLink: shareLink.trim(),
+          title: collectionData?.title,
+          type: 'collection',
+        });
         showAlertMessage(`已添加 ${count} 个视频至下载队列`);
       }
     } else if (activePanel === 'bangumi') {
       const count = confirmBangumiDownload(savePath);
       if (count > 0) {
+        void recordDownloadHistory({
+          shareLink: shareLink.trim(),
+          title: bangumiData?.title,
+          type: 'bangumi',
+        });
         showAlertMessage(`已添加 ${count} 个视频至下载队列`);
       }
     } else if (activePanel === 'userVideo') {
       const count = confirmUserVideoDownload(savePath);
       if (count > 0) {
+        void recordDownloadHistory({
+          shareLink: shareLink.trim(),
+          title: userVideoData?.userInfo.name
+            ? `${userVideoData.userInfo.name} 的投稿视频`
+            : undefined,
+          type: 'user',
+        });
         showAlertMessage(`已添加 ${count} 个视频至下载队列`);
       }
     }
@@ -281,7 +301,7 @@ function App() {
           setShowQueue((v) => !v);
         }}
         onOpenSettings={() => setShowSettings((visible) => !visible)}
-        onShowCurrentTime={() => showAlertMessage('当前时间: ' + new Date().toLocaleTimeString())}
+        onOpenHistory={() => setShowHistory((visible) => !visible)}
         onToggleOpen={handleToggleOpen}
         onToggleTheme={() => setIsDarkTheme((dark) => !dark)}
         open={actionsOpen}
@@ -305,6 +325,12 @@ function App() {
       <DownloadQueue
         visible={showQueue}
         onClose={() => setShowQueue(false)}
+      />
+
+      <DownloadHistory
+        onClose={() => setShowHistory(false)}
+        showAlert={showAlertMessage}
+        visible={showHistory}
       />
 
       <AlertToast message={alertMessage} visible={showAlert} />

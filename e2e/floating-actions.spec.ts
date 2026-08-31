@@ -14,7 +14,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await teardownSuite(ctx?.electronApp);
+  await teardownSuite(ctx?.electronApp, ctx?.userDataPath);
 });
 
 test.describe('Floating actions menu', () => {
@@ -34,12 +34,12 @@ test.describe('Floating actions menu', () => {
     await expect(ctx.mainPage.getByTestId('floatingMenu')).not.toBeVisible();
   });
 
-  test('always-visible menu items are present (queue, theme, time, login, settings)', async () => {
+  test('always-visible menu items are present (queue, theme, history, login, settings)', async () => {
     await openFloatingMenu(ctx.mainPage);
 
     await expect(ctx.mainPage.getByTestId('menu-queue')).toBeVisible();
     await expect(ctx.mainPage.getByTestId('menu-theme')).toBeVisible();
-    await expect(ctx.mainPage.getByTestId('menu-time')).toBeVisible();
+    await expect(ctx.mainPage.getByTestId('menu-history')).toBeVisible();
     await expect(ctx.mainPage.getByTestId('menu-login')).toBeVisible();
     await expect(ctx.mainPage.getByTestId('menu-settings')).toBeVisible();
   });
@@ -57,14 +57,9 @@ test.describe('Floating actions menu', () => {
     expect(after).not.toBe(before);
   });
 
-  test('click time button shows alert toast with current time', async () => {
+  test('history button opens the download history panel', async () => {
     await openFloatingMenu(ctx.mainPage);
-    await ctx.mainPage.getByTestId('menu-time').click();
-    // menu closes via closeAfterAction; toast should appear
-    await ctx.mainPage.waitForTimeout(300);
-
-    const toast = ctx.mainPage.getByTestId('warning');
-    await expect(toast).toBeVisible();
-    expect(await toast.textContent()).toContain('当前时间');
+    await ctx.mainPage.getByTestId('menu-history').click();
+    await expect(ctx.mainPage.getByTestId('history-panel')).toBeVisible();
   });
 });

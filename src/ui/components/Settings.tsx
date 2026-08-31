@@ -19,6 +19,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
   const modalRef = useClickOutside<HTMLDivElement>(visible, onClose);
   const {
     defaultDownloadPath,
+    closeBehavior,
     fireworkParticles,
     handleFolderSelect,
     handleLogout,
@@ -26,6 +27,7 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
     saveSettings,
     selectedQuality,
     setFireworkParticles,
+    setCloseBehavior,
     setSelectedQuality,
     setSystemNotification,
     systemNotification,
@@ -107,6 +109,28 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
               />
               <span>彩带特效</span>
             </label>
+            <div className="settings-choice" data-testid="settings-close-behavior">
+              <span className="settings-choice__label">关闭窗口时</span>
+              <label className="settings-row">
+                <input
+                  checked={closeBehavior === 'hide-to-tray'}
+                  name="closeBehavior"
+                  onChange={() => setCloseBehavior('hide-to-tray')}
+                  type="radio"
+                />
+                <span>最小化到系统托盘</span>
+              </label>
+              <label className="settings-row">
+                <input
+                  checked={closeBehavior === 'quit'}
+                  name="closeBehavior"
+                  onChange={() => setCloseBehavior('quit')}
+                  type="radio"
+                />
+                <span>直接退出应用</span>
+              </label>
+              <small>直接退出会中止尚未完成的下载任务。</small>
+            </div>
           </section>
 
           <section className="settings-section">
@@ -147,8 +171,8 @@ const Settings = ({ visible, onClose, setMainPageStatus, noticeSettingsSaved }: 
           <button
             className="modal-button modal-button--primary"
             data-testid="settings-save"
-            onClick={() => {
-              saveSettings();
+            onClick={async () => {
+              await saveSettings();
               noticeSettingsSaved();
               onClose();
             }}

@@ -20,6 +20,7 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
   const [selectedQuality, setSelectedQuality] = useState<number | null>(settings?.videoQuality ?? 64);
   const [systemNotification, setSystemNotification] = useState(settings?.systemNotification ?? false);
   const [fireworkParticles, setFireworkParticles] = useState(settings?.fireworkParticles ?? false);
+  const [closeBehavior, setCloseBehavior] = useState<CloseBehavior>(settings?.closeBehavior ?? 'hide-to-tray');
   const [defaultDownloadPath, setDefaultDownloadPath] = useState(settings?.downloadPath ?? DEFAULT_DOWNLOAD_PATH);
 
   const handleFolderSelect = useCallback(async () => {
@@ -35,14 +36,15 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
     setUserInfo(DEFAULT_USER_INFO);
   }, [resetUserInfo, setMainPageStatus]);
 
-  const saveSettings = useCallback(() => {
-    saveSettingsCache({
+  const saveSettings = useCallback(async () => {
+    await saveSettingsCache({
       videoQuality: selectedQuality,
       downloadPath: defaultDownloadPath,
       systemNotification,
       fireworkParticles,
+      closeBehavior,
     });
-  }, [defaultDownloadPath, fireworkParticles, saveSettingsCache, selectedQuality, systemNotification]);
+  }, [closeBehavior, defaultDownloadPath, fireworkParticles, saveSettingsCache, selectedQuality, systemNotification]);
 
   useEffect(() => {
     if (!visible) return;
@@ -58,6 +60,7 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
     setDefaultDownloadPath(settings.downloadPath);
     setSystemNotification(settings.systemNotification ?? false);
     setFireworkParticles(settings.fireworkParticles ?? false);
+    setCloseBehavior(settings.closeBehavior ?? 'hide-to-tray');
   }, [settings]);
 
   useEffect(() => {
@@ -69,6 +72,7 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
 
   return {
     defaultDownloadPath,
+    closeBehavior,
     fireworkParticles,
     handleFolderSelect,
     handleLogout,
@@ -76,6 +80,7 @@ export function useSettingsPanel(visible: boolean, setMainPageStatus: () => void
     saveSettings,
     selectedQuality,
     setFireworkParticles,
+    setCloseBehavior,
     setSelectedQuality,
     setSystemNotification,
     systemNotification,

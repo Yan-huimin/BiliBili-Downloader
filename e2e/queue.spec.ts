@@ -3,7 +3,6 @@ import {
   setupSuite,
   teardownSuite,
   openFloatingMenu,
-  closeFloatingMenu,
   type E2eContext,
 } from './helpers';
 
@@ -14,7 +13,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await teardownSuite(ctx?.electronApp);
+  await teardownSuite(ctx?.electronApp, ctx?.userDataPath);
 });
 
 test.describe('Download queue panel', () => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { BiCog } from 'react-icons/bi';
-import { FaClock } from 'react-icons/fa';
+import { FaHistory } from 'react-icons/fa';
 import { LuListVideo } from 'react-icons/lu';
 import { MdOutlineVideoLibrary } from 'react-icons/md';
 import { RiBilibiliFill } from 'react-icons/ri';
@@ -22,7 +22,7 @@ type FloatingActionsProps = {
   onOpenLogin: () => void;
   onOpenQueue: () => void;
   onOpenSettings: () => void;
-  onShowCurrentTime: () => void;
+  onOpenHistory: () => void;
   onClose: () => void;
   onToggleOpen: () => void;
   onToggleTheme: () => void;
@@ -41,7 +41,7 @@ function FloatingActions({
   onOpenLogin,
   onOpenQueue,
   onOpenSettings,
-  onShowCurrentTime,
+  onOpenHistory,
   onToggleOpen,
   onToggleTheme,
   open,
@@ -142,14 +142,14 @@ function FloatingActions({
               {isDarkTheme ? <MdLightMode /> : <MdDarkMode />}
             </button>
             <button
-              aria-label="显示当前时间"
+              aria-label="下载历史"
               className="floating-actions__item"
-              data-testid="menu-time"
-              onClick={() => closeAfterAction(onShowCurrentTime)}
-              title="当前时间"
+              data-testid="menu-history"
+              onClick={() => closeAfterAction(onOpenHistory)}
+              title="下载历史"
               type="button"
             >
-              <FaClock />
+              <FaHistory />
             </button>
             <button
               aria-label={loginStatus ? '已登录' : '登录哔哩哔哩'}

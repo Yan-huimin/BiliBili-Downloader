@@ -14,14 +14,14 @@ import fs from 'fs';
 import { access } from 'node:fs/promises';
 import path from "path";
 import os from 'os';
-import { getDefaultVideoPath, getFfmpegPath, getSettingsPath } from "./pathResolver.js";
+import { getFfmpegPath } from "./pathResolver.js";
+import { loadSettings } from "./settingsService.js";
 import type { CookieJar } from "tough-cookie";
 import { spawn } from "child_process";
 import { pipeline } from "stream/promises";
 import { constants } from "node:fs";
 import { rm } from "node:fs/promises";
 
-const ffmpegPath = getFfmpegPath();
 const THREAD_COUNT = 4;
 const PROGRESS_EMIT_INTERVAL_MS = 250;
 const STDERR_LIMIT = 64 * 1024;
@@ -57,9 +57,7 @@ export function extractBV(url: url): url | null {
  * @returns 反序列化后的 Settings 对象。
  */
 function getSettings() {
-    ensureExistSettingsFile();
-    const data = fs.readFileSync(getSettingsPath(), 'utf-8');
-    return JSON.parse(data) as Settings;
+    return loadSettings();
 }
 
 /**
@@ -875,26 +873,10 @@ export async function logout() {
  * 检查本地设置文件是否存在。
  * @returns 文件存在返回 true，否则返回 false。
  */
-function isExistSettingsFile(): boolean{
-    return fs.existsSync(getSettingsPath());
-}
-
 /**
  * 确保本地设置文件存在。
  * 若文件不存在，则用默认设置（画质 64、默认视频路径、关闭通知和特效）创建一个新文件。
  */
-export async function ensureExistSettingsFile() {
-    if(!isExistSettingsFile()){
-        const defaultSettings: Settings = {
-            videoQuality: 64,
-            downloadPath: getDefaultVideoPath(),
-            systemNotification: false,
-            fireworkParticles: false,
-        };
-        fs.writeFileSync(getSettingsPath(), JSON.stringify(defaultSettings, null, 2), 'utf-8');
-    }
-}
-
 /**
  * 获取当前 CookieJar 中适用于 Bilibili API 的 Cookie 字符串。
  * @returns Cookie 键值对字符串，如 "SESSDATA=xxx; bili_jct=yyy"。

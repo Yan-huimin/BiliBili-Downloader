@@ -1,4 +1,7 @@
 import { expect, _electron, Page } from '@playwright/test';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
 /**
  * Wait for the preload script to expose `window.electron` on the renderer page.
@@ -18,27 +21,46 @@ export async function waitForPreloadScript(
 export interface E2eContext {
   electronApp: Awaited<ReturnType<typeof _electron.launch>>;
   mainPage: Page;
+  userDataPath: string;
 }
 
 /**
  * Launch the Electron app once per spec file. Use in `beforeAll`.
  */
 export async function setupSuite(): Promise<E2eContext> {
-  const electronApp = await _electron.launch({
-    args: ['.'],
-    env: {
-      NODE_ENV: 'development',
-      HTTP_PROXY: '',
-      HTTPS_PROXY: '',
-      http_proxy: '',
-      https_proxy: '',
-      NO_PROXY: 'localhost,127.0.0.1,::1',
-      no_proxy: 'localhost,127.0.0.1,::1',
-    },
-  });
-  const mainPage = await electronApp.firstWindow();
-  await waitForPreloadScript(mainPage);
-  return { electronApp, mainPage };
+  const userDataPath = await mkdtemp(path.join(os.tmpdir(), 'bilidownload-e2e-'));
+  try {
+    await writeFile(
+      path.join(userDataPath, 'Settings.json'),
+      JSON.stringify({
+        videoQuality: 64,
+        downloadPath: process.cwd(),
+        systemNotification: false,
+        fireworkParticles: false,
+        closeBehavior: 'quit',
+      }),
+      'utf-8',
+    );
+    const electronApp = await _electron.launch({
+      args: ['.'],
+      env: {
+        NODE_ENV: 'development',
+        HTTP_PROXY: '',
+        HTTPS_PROXY: '',
+        http_proxy: '',
+        https_proxy: '',
+        NO_PROXY: 'localhost,127.0.0.1,::1',
+        no_proxy: 'localhost,127.0.0.1,::1',
+        BILIDOWNLOAD_E2E_USER_DATA_DIR: userDataPath,
+      },
+    });
+    const mainPage = await electronApp.firstWindow();
+    await waitForPreloadScript(mainPage);
+    return { electronApp, mainPage, userDataPath };
+  } catch (error) {
+    await rm(userDataPath, { force: true, recursive: true }).catch(() => {});
+    throw error;
+  }
 }
 
 /**
@@ -46,12 +68,20 @@ export async function setupSuite(): Promise<E2eContext> {
  */
 export async function teardownSuite(
   electronApp: Awaited<ReturnType<typeof _electron.launch>> | undefined,
+  userDataPath?: string,
 ): Promise<void> {
-  if (!electronApp) return;
-  await Promise.race([
-    electronApp.close().catch(() => {}),
-    new Promise((resolve) => setTimeout(resolve, 5000)),
-  ]);
+  try {
+    if (electronApp) {
+      await Promise.race([
+        electronApp.close().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+      ]);
+    }
+  } finally {
+    if (userDataPath) {
+      await rm(userDataPath, { force: true, recursive: true }).catch(() => {});
+    }
+  }
 }
 
 /**

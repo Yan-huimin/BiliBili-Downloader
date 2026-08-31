@@ -58,11 +58,14 @@ type downloadSuccess = {
     types: string,
     message: string
 }
+type CloseBehavior = 'hide-to-tray' | 'quit';
+
 type Settings = {
     videoQuality: number | null;
     downloadPath: string;
     systemNotification: boolean;
     fireworkParticles: boolean;
+    closeBehavior: CloseBehavior;
 }
 type dashUrl = {
     video_url: string;
@@ -144,6 +147,23 @@ type UserVideoApiItem = {
 /* 分享链接类型 */
 type ShareLinkType = 'bv' | 'ep' | 'both' | 'space' | 'none';
 
+type DownloadHistoryType = 'video' | 'collection' | 'bangumi' | 'user';
+
+type DownloadHistoryItem = {
+  id: string;
+  shareLink: string;
+  title: string;
+  type: DownloadHistoryType;
+  createdAt: string;
+};
+
+type AddDownloadHistoryPayload = {
+  shareLink: string;
+  title?: string;
+  type: DownloadHistoryType;
+  bvid?: string;
+};
+
 /* 统一视频列表项 */
 type VideoListItem = {
   key: string;
@@ -205,7 +225,7 @@ interface Window{
         checkFileExist: (payload: filePathExist) => Promise<string>;
         on: (channel: 'download-complete' | 'download-error', callback: (payload: string) => void) => () => void;
         sendSuccessInfo: (payload: downloadSuccess) => void;
-        setSettings: (payload: Settings) => void;
+        setSettings: (payload: Settings) => Promise<Settings>;
         loadSettings: () => Promise<Settings>;
         openDevTools: () => Promise<boolean>;
         fetchCollection: (bvid: string) => Promise<CollectionInfo | null>;
@@ -221,6 +241,11 @@ interface Window{
         fetchUserVideos: (mid: number) => Promise<UserVideoListData | null>;
         fetchUserVideoPage: (req: UserVideoPageRequest) => Promise<UserVideoPageResult | null>;
         fetchUserCard: (mid: number) => Promise<UserCardInfo | null>;
+        getDownloadHistory: () => Promise<DownloadHistoryItem[]>;
+        addDownloadHistory: (payload: AddDownloadHistoryPayload) => Promise<DownloadHistoryItem[]>;
+        deleteDownloadHistory: (id: string) => Promise<DownloadHistoryItem[]>;
+        clearDownloadHistory: () => Promise<DownloadHistoryItem[]>;
+        copyHistoryLink: (link: string) => Promise<boolean>;
     },
     biliApi:{
         getQr: () => Promise<QRInfo>;

@@ -77,9 +77,10 @@ export async function loadCachedSettings(force = false) {
   return settingsPromise;
 }
 
-export function saveCachedSettings(settings: Settings) {
-  setSnapshot({ settings });
-  window.electron.setSettings(settings);
+export async function saveCachedSettings(settings: Settings) {
+  const savedSettings = await window.electron.setSettings(settings);
+  setSnapshot({ settings: savedSettings });
+  return savedSettings;
 }
 
 export async function loadCachedUserInfo(force = false) {

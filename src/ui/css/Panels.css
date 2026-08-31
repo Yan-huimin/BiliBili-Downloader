@@ -1,7 +1,8 @@
 /* ===== 合集 & 下载队列共用样式 ===== */
 
 .collection-panel,
-.queue-panel {
+.queue-panel,
+.history-panel {
   --panel-surface: color-mix(in srgb, var(--glass-strong) 92%, var(--bg-2));
   --panel-item: color-mix(in srgb, var(--input-bg) 72%, var(--bg-2));
   --panel-item-hover: color-mix(in srgb, var(--button-hover) 82%, var(--accent) 6%);
@@ -18,8 +19,85 @@
 }
 
 .modal-panel.collection-panel,
-.modal-panel.queue-panel {
+.modal-panel.queue-panel,
+.modal-panel.history-panel {
   background: var(--panel-surface);
+}
+
+.history-item {
+  align-items: center;
+  background: var(--panel-item);
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  padding: 9px;
+}
+
+.history-item__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.history-item__header {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.history-item__title,
+.history-item__link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-item__title {
+  color: var(--text-strong);
+  flex: 1;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.history-item__type {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 9px;
+  padding: 2px 6px;
+}
+
+.history-item__link,
+.history-item__time {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.history-item__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.history-item__actions button {
+  align-items: center;
+  background: var(--button-bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  height: 25px;
+  justify-content: center;
+  width: 27px;
+}
+
+.history-item__actions button:hover {
+  color: var(--accent);
 }
 
 .panel-header {

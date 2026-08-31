@@ -4,7 +4,14 @@ import { registerBiliImageHeaders, registerVideoDownloader } from './utils.js';
 import { createMainWindow } from './createWindows.js';
 import { setupIpcHandlers } from './ipcEventHandler.js';
 import { restoreBiliLoginFromStorage } from './bilibiliAuthService.js';
-import { createAppTray, destroyTray, getIsQuitting, showMainWindow } from './tray.js';
+import { createAppTray, destroyTray, getIsQuitting, markAppQuitting, showMainWindow } from './tray.js';
+import { ensureDownloadHistoryFile } from './historyService.js';
+import { ensureSettingsFile, getCloseBehavior } from './settingsService.js';
+
+const e2eUserDataPath = process.env.BILIDOWNLOAD_E2E_USER_DATA_DIR;
+if (process.env.NODE_ENV === 'development' && e2eUserDataPath) {
+  app.setPath('userData', e2eUserDataPath);
+}
 
 app.setName(APP_NAME);
 
@@ -26,6 +33,8 @@ if (!gotTheLock) {
 
   app.whenReady().then(async () => {
     await restoreBiliLoginFromStorage();
+    ensureSettingsFile();
+    ensureDownloadHistoryFile();
     const mainWindow = createMainWindow();
     setupIpcHandlers(mainWindow);
     registerBiliImageHeaders();
@@ -35,20 +44,26 @@ if (!gotTheLock) {
 
     // 关闭窗口 → 隐藏到托盘，不退出
     mainWindow.on('close', (event) => {
-      if (!getIsQuitting()) {
-        event.preventDefault();
-        mainWindow.hide();
-        mainWindow.setSkipTaskbar(true);
-        if (!mainWindow.webContents.isDestroyed()) {
-          mainWindow.webContents.send('app:enter-background-mode');
-          mainWindow.webContents.setBackgroundThrottling(true);
-        }
+      if (getIsQuitting()) return;
+
+      event.preventDefault();
+      if (getCloseBehavior() === 'quit') {
+        markAppQuitting();
+        app.quit();
+        return;
+      }
+
+      mainWindow.hide();
+      mainWindow.setSkipTaskbar(true);
+      if (!mainWindow.webContents.isDestroyed()) {
+        mainWindow.webContents.send('app:enter-background-mode');
+        mainWindow.webContents.setBackgroundThrottling(true);
       }
     });
   });
 
   app.on('before-quit', () => {
-    // ensure isQuitting is set for clean exit
+    markAppQuitting();
   });
 
   app.on('will-quit', () => {

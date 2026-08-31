@@ -155,6 +155,11 @@ export function getIsQuitting(): boolean {
   return _isQuitting;
 }
 
+/** 标记应用已经进入退出流程，防止窗口关闭事件再次隐藏窗口。 */
+export function markAppQuitting(): void {
+  _isQuitting = true;
+}
+
 /**
  * 创建系统托盘，设置图标、菜单和双击打开行为。
  * @param mainWindow 主窗口实例

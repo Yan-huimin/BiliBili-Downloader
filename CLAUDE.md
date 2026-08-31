@@ -29,40 +29,22 @@ NO_PROXY="localhost,127.0.0.1,::1" npx playwright test
 
 **Prerequisites**: Node.js 18+, `npx playwright install` (first time).
 
-### E2E Test Setup (pre-run checklist)
+### E2E Test Setup
 
-The e2e tests use Playwright's Electron launcher. Before running tests, **temporarily modify `src/electron/main.ts`** to allow clean test teardown:
-
-**Change 1** — Skip single-instance lock (L17-18):
-```ts
-// const gotTheLock = app.requestSingleInstanceLock();
-const gotTheLock = isDev() ? true : app.requestSingleInstanceLock(); // 测试用
-```
-(also add `isDev` to the import from `./utils.js`)
-
-**Change 2** — Disable hide-to-tray so window closes directly (L36-47):
-```ts
-mainWindow.on('close', () => {
-  // 测试用：直接关闭，不走隐藏托盘逻辑
-});
-```
-
-Then:
-```bash
-npm run transpile:electron   # Must recompile after main.ts changes
-npm run test:e2e
-```
-
-**Revert both changes after testing.** The tests need these because:
-- Single-instance lock prevents multiple Electron processes (tests launch one per spec file)
-- Hide-to-tray intercepts `window.close()`, causing `electronApp.close()` to hang
+Do not modify production window or single-instance logic before running tests.
+`e2e/helpers.ts` creates an isolated temporary Electron `userData` directory for each
+suite and writes a complete `Settings.json` with `closeBehavior: "quit"`. The helper
+passes that directory through `BILIDOWNLOAD_E2E_USER_DATA_DIR`, closes Electron during
+teardown, and removes the temporary directory. Settings, cookies, and download history
+from normal development runs are therefore not touched.
 
 ### E2E Test Architecture
 
-- **6 spec files**, 27 tests total, 1 Electron launch per spec (`beforeAll`/`afterAll`)
+- **6 spec files**, 28 tests total, 1 Electron launch per spec (`beforeAll`/`afterAll`)
 - `e2e/helpers.ts` — shared `setupSuite`, `teardownSuite`, `openFloatingMenu`, `closeFloatingMenu`
 - All tests run serially (`workers: 1`, `fullyParallel: false`)
 - Vite binds to `127.0.0.1:5123` (IPv4, not `::1`) so Playwright's HTTP health-check works on Windows
+- Every suite uses its own temporary `userData`; never point tests at a real user-data directory
 
 **Known environment issues on this machine:**
 - `HTTP_PROXY=http://127.0.0.1:7897` — must clear or set `NO_PROXY` to bypass for localhost
@@ -87,7 +69,8 @@ The root `tsconfig.json` only has project references. Vite config at root only h
 - Creates the fixed-size 400×500 frameless window
 - Single-instance lock (prevents double-launch)
 - Sets up IPC handlers, tray, downloader, image header interception
-- Window close = hide to tray (not quit); system tray manages actual quit
+- Window close follows `Settings.closeBehavior`: `hide-to-tray` (default) or `quit`
+- In development only, `BILIDOWNLOAD_E2E_USER_DATA_DIR` can override `userData` for isolated E2E runs
 
 **IPC Layer** — Type-safe bridge between main and renderer:
 
@@ -109,9 +92,11 @@ The root `tsconfig.json` only has project references. Vite config at root only h
 - `bilibiliClient.ts` — Axios instance with `tough-cookie` CookieJar (`axios-cookiejar-support`)
 - `bilibiliAuthService.ts` — QR code login flow: generate → poll → sync cookies → persist
 - `cookieStore.ts` — Serialize/deserialize CookieJar to `biliCookies.json` in `app.getPath('userData')`
+- `historyService.ts` — Persist up to 30 download-link records, deduplicate by link, resolve single-video titles, delete/clear history
+- `settingsService.ts` — Normalize legacy settings, provide defaults, persist settings, and cache the active close behavior
 - `bangumiService.ts`, `collectionService.ts`, `userVideoService.ts` — Fetch content-type-specific data from Bilibili APIs
 - `wbiSign.ts` — WBI signing for Bilibili API requests (mixin key + md5)
-- `pathResolver.ts` — All path resolution (dev vs production paths differ). `isDev()` checks `NODE_ENV === 'development'`.
+- `pathResolver.ts` — All path resolution (dev vs production paths differ); its local `isDev()` checks `NODE_ENV === 'development'`.
 - `tray.ts` — System tray with context menu, download progress display, single-instance second-instance handling
 - `createWindows.ts` — Window creation, dev/prod URL loading, renderer crash recovery
 
@@ -130,6 +115,7 @@ The root `tsconfig.json` only has project references. Vite config at root only h
 - `useDownloadManager` — Core download orchestration: URL input, folder selection, share link parsing, download trigger
 - `useCollection` / `useBangumi` / `useUserVideo` — Fetch content lists from main process, manage selection state, confirm bulk download
 - `useDownloadQueue` — Subscribes to queue updates from main process
+- `useDownloadHistory` — Loads history and handles copy, delete, and clear actions
 - `useBiliQrLogin` — QR code login flow on the renderer side
 - `useBackgroundMode` — Listens for background/foreground transitions
 
@@ -137,20 +123,37 @@ The root `tsconfig.json` only has project references. Vite config at root only h
 
 ### Type System
 
-All shared types live in root `types.d.ts`. `EventPayloadMapping` is the **IPC contract** — adding a new IPC channel requires entries in:
-1. `EventPayloadMapping` (key + payload type)
-2. `Window.electron` or `Window.biliApi` interface (renderer-side function signature)
-3. `preload.cts` (actual `contextBridge` exposure)
-4. `ipcEventHandler.ts` (main-process handler)
-5. `ipcTools.ts` type inference handles the rest automatically
+All shared types live in root `types.d.ts`. For renderer-accessible IPC, keep these layers synchronized:
+1. Shared request/response types in `types.d.ts`
+2. `Window.electron` or `Window.biliApi` renderer-side function signatures
+3. `preload.cts` `contextBridge` exposure
+4. `ipcEventHandler.ts` main-process handlers
+
+Channels using the typed `IpcMainOn`/`IpcMainHandle` wrappers also require an
+`EventPayloadMapping` entry. Some request/response handlers use `ipcMain.handle`
+directly when their request and response types differ.
 
 ### Persistence
 
 | Data | Location | Format |
 |---|---|---|
-| App settings | `{userData}/Settings.json` | JSON (`Settings` type) |
+| App settings | `{userData}/Settings.json` | JSON (`Settings` type, normalized by `settingsService.ts`) |
 | Bilibili cookies | `{userData}/biliCookies.json` | Serialized CookieJar JSON |
+| Download history | `{userData}/downloadHistory.json` | JSON array, newest first, maximum 30 records |
 | Download temp files | `os.tmpdir()/bili-download-*` | Raw files (auto-cleaned on quit) |
+
+`Settings.closeBehavior` is `'hide-to-tray' | 'quit'`. Missing or invalid values from
+older settings files normalize to `'hide-to-tray'`. Settings saves use invoke-style IPC,
+so the renderer only updates its cache after the main process confirms persistence.
+
+### Download History Rules
+
+- Record history only after a single or bulk download is actually enqueued.
+- Opening a collection/bangumi/user list, retrying a queue task, or entering a URL does not create history.
+- A bulk selection produces one history record for the original share link.
+- Reusing a link updates its title/time and moves it to the front instead of adding a duplicate.
+- Single-video title lookup failures fall back to the BV identifier and must not block downloading.
+- Clipboard writes happen in the main process through Electron's `clipboard` API.
 
 ### Content Link Types
 
